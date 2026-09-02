@@ -1,0 +1,33 @@
+package domain
+
+import "time"
+
+type User struct {
+	ID               int64     `json:"id"`
+	Email            *string   `json:"email"`
+	EmailVerified    bool      `json:"email_verified"`
+	TelegramID       *int64    `json:"telegram_id"`
+	TelegramUsername *string   `json:"telegram_username"`
+	Role             string    `json:"role"`
+	IsActive         bool      `json:"is_active"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
+}
+
+type RefreshToken struct {
+	ID        int64     `json:"id"`
+	UserID    int64     `json:"user_id"`
+	TokenHash string    `json:"-"`
+	UserAgent string    `json:"user_agent"`
+	IPAddress string    `json:"ip_address"`
+	IsRevoked bool      `json:"is_revoked"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
+
+type EmailOTP struct {
+	ID        int64     `json:"id"`
+	Email     string    `json:"email"`
+	Code      string    `json:"code"`
+	IsUsed    bool      `json:"is_used"`
+	ExpiresAt time.Time `json:"expires_at"`
+}
