@@ -14,7 +14,7 @@ func NewUserHandler(userService *service.UserService) *UserHandler {
 	return &UserHandler{userService: userService}
 }
 
-// GET /api/v1/users/me
+// GET /api/v1/users/me — получение профиля
 func (h *UserHandler) GetMe(c fiber.Ctx) error {
 	userID, ok := c.Locals(middleware.LocalUserIDKey).(int64)
 	if !ok {
@@ -29,8 +29,31 @@ func (h *UserHandler) GetMe(c fiber.Ctx) error {
 	return c.JSON(user)
 }
 
-// PATCH /api/v1/users/me
-func (h *UserHandler) CompleteProfile(c fiber.Ctx) error {
+// POST /api/v1/users/me/onboarding — завершение онбординга
+func (h *UserHandler) CompleteOnboarding(c fiber.Ctx) error {
+	userID, ok := c.Locals(middleware.LocalUserIDKey).(int64)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "неавторизован"})
+	}
+
+	var req struct {
+		FirstName string `json:"first_name"`
+	}
+
+	if err := c.Bind().Body(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "некорректный формат данных"})
+	}
+
+	user, err := h.userService.CompleteProfile(c.Context(), userID, req.FirstName)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
+	}
+
+	return c.JSON(user)
+}
+
+// PATCH /api/v1/users/me — редактирование профиля
+func (h *UserHandler) UpdateProfile(c fiber.Ctx) error {
 	userID, ok := c.Locals(middleware.LocalUserIDKey).(int64)
 	if !ok {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "неавторизован"})
@@ -41,7 +64,7 @@ func (h *UserHandler) CompleteProfile(c fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "некорректный формат данных"})
 	}
 
-	user, err := h.userService.CompleteProfile(c.Context(), userID, req)
+	user, err := h.userService.UpdateProfile(c.Context(), userID, req)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": err.Error()})
 	}

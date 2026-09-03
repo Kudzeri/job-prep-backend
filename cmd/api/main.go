@@ -81,11 +81,12 @@ func main() {
 	userHandler := handler.NewUserHandler(userService)
 
 	// Защищенная группа роутов через middleware.Protected
-	protectedAPI := app.Group("/api/v1", middleware.Protected(jwtSecret))
+	protected := app.Group("/api/v1", middleware.Protected(jwtSecret))
 
-	// Роуты пользователей
-	protectedAPI.Get("/users/me", userHandler.GetMe)
-	protectedAPI.Patch("/users/me", userHandler.CompleteProfile)
+	// Роуты работы с профилем
+	protected.Get("/users/me", userHandler.GetMe)
+	protected.Post("/users/me/onboarding", userHandler.CompleteOnboarding)
+	protected.Patch("/users/me", userHandler.UpdateProfile)
 
 	// Эндпоинты авторизации
 	authGroup := app.Group("/api/v1/auth")

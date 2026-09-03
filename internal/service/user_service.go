@@ -21,13 +21,23 @@ func (s *UserService) GetProfile(ctx context.Context, userID int64) (*domain.Use
 }
 
 type UpdateProfileInput struct {
-	FirstName string `json:"first_name"`
+	FirstName *string `json:"first_name"`
 }
 
-func (s *UserService) CompleteProfile(ctx context.Context, userID int64, input UpdateProfileInput) (*domain.User, error) {
-	if input.FirstName == "" {
-		return nil, errors.New("имя пользователя не может быть пустым")
+// CompleteProfile используется только при первом входе (Onboarding)
+func (s *UserService) CompleteProfile(ctx context.Context, userID int64, firstName string) (*domain.User, error) {
+	if firstName == "" {
+		return nil, errors.New("имя не может быть пустым")
 	}
 
-	return s.repo.CompleteProfile(ctx, userID, input.FirstName)
+	return s.repo.CompleteProfile(ctx, userID, firstName)
+}
+
+// UpdateProfile используется для последующего редактирования профиля
+func (s *UserService) UpdateProfile(ctx context.Context, userID int64, input UpdateProfileInput) (*domain.User, error) {
+	if input.FirstName != nil && *input.FirstName == "" {
+		return nil, errors.New("имя не может быть пустым")
+	}
+
+	return s.repo.UpdateProfile(ctx, userID, input.FirstName)
 }
