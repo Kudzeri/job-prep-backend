@@ -97,3 +97,76 @@ func (r *AuthRepository) SaveRefreshToken(ctx context.Context, token *domain.Ref
 	_, err := r.db.Exec(ctx, query, token.UserID, token.TokenHash, token.UserAgent, token.IPAddress, token.ExpiresAt)
 	return err
 }
+
+// --- Telegram Auth Sessions ---
+
+func (r *AuthRepository) CreateTelegramSession(ctx context.Context, authToken string, expiresAt time.Time) error {
+	query := `
+		INSERT INTO telegram_auth_sessions (auth_token, status, expires_at)
+		VALUES ($1, 'pending', $2)
+	`
+	_, err := r.db.Exec(ctx, query, authToken, expiresAt)
+	return err
+}
+
+func (r *AuthRepository) GetTelegramSession(ctx context.Context, authToken string) (*domain.TelegramAuthSession, error) {
+	query := `
+		SELECT id, auth_token, telegram_id, status, expires_at, created_at
+		FROM telegram_auth_sessions
+		WHERE auth_token = $1 AND expires_at > NOW()
+	`
+	var session domain.TelegramAuthSession
+	err := r.db.QueryRow(ctx, query, authToken).Scan(
+		&session.ID, &session.AuthToken, &session.TelegramID, &session.Status, &session.ExpiresAt, &session.CreatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &session, nil
+}
+
+func (r *AuthRepository) ConfirmTelegramSession(ctx context.Context, authToken string, telegramID int64) error {
+	query := `
+		UPDATE telegram_auth_sessions
+		SET telegram_id = $1, status = 'approved'
+		WHERE auth_token = $2 AND status = 'pending' AND expires_at > NOW()
+	`
+	_, err := r.db.Exec(ctx, query, telegramID, authToken)
+	return err
+}
+
+// --- Telegram User ---
+
+func (r *AuthRepository) GetUserByTelegramID(ctx context.Context, telegramID int64) (*domain.User, error) {
+	query := `
+		SELECT id, email, email_verified, telegram_id, telegram_username, role, is_active, created_at, updated_at
+		FROM users
+		WHERE telegram_id = $1
+	`
+	var user domain.User
+	err := r.db.QueryRow(ctx, query, telegramID).Scan(
+		&user.ID, &user.Email, &user.EmailVerified, &user.TelegramID,
+		&user.TelegramUsername, &user.Role, &user.IsActive, &user.CreatedAt, &user.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *AuthRepository) CreateUserWithTelegram(ctx context.Context, telegramID int64, username string) (*domain.User, error) {
+	query := `
+		INSERT INTO users (telegram_id, telegram_username)
+		VALUES ($1, $2)
+		RETURNING id, email, email_verified, telegram_id, telegram_username, role, is_active, created_at, updated_at
+	`
+	var user domain.User
+	err := r.db.QueryRow(ctx, query, telegramID, username).Scan(
+		&user.ID, &user.Email, &user.EmailVerified, &user.TelegramID,
+		&user.TelegramUsername, &user.Role, &user.IsActive, &user.CreatedAt, &user.UpdatedAt,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}

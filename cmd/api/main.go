@@ -10,6 +10,7 @@ import (
 	"github.com/Kudzeri/job-prep-backend/pkg/database"
 	"github.com/Kudzeri/job-prep-backend/pkg/email"
 	"github.com/Kudzeri/job-prep-backend/pkg/middleware"
+	"github.com/Kudzeri/job-prep-backend/pkg/telegram"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/logger"
@@ -50,6 +51,15 @@ func main() {
 		AppName: "Job Prep Backend v1.0",
 	})
 
+	// Запуск Telegram-бота в фоне
+	tgBot, err := telegram.NewBot(os.Getenv("TELEGRAM_BOT_TOKEN"), authRepo)
+	if err != nil {
+		log.Printf("Предупреждение: Telegram бот не запущен: %v", err)
+	} else {
+		go tgBot.Start()
+		log.Println("Telegram бот успешно запущен")
+	}
+
 	// Middlewares
 	app.Use(logger.New())
 	app.Use(cors.New())
@@ -71,6 +81,8 @@ func main() {
 	authGroup := app.Group("/api/v1/auth")
 	authGroup.Post("/email/send", authHandler.SendOTP)
 	authGroup.Post("/email/verify", authHandler.VerifyOTP)
+	authGroup.Post("/telegram/init", authHandler.InitTelegramAuth)
+	authGroup.Get("/telegram/check", authHandler.CheckTelegramAuth)
 
 	// Защищенная группа роутов через middleware.Protected
 	api := app.Group("/api/v1", middleware.Protected(jwtSecret))

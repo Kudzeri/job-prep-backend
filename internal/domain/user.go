@@ -31,3 +31,12 @@ type EmailOTP struct {
 	IsUsed    bool      `json:"is_used"`
 	ExpiresAt time.Time `json:"expires_at"`
 }
+
+type TelegramAuthSession struct {
+	ID         int64     `json:"id"`
+	AuthToken  string    `json:"auth_token"`
+	TelegramID *int64    `json:"telegram_id"`
+	Status     string    `json:"status"` // "pending", "approved", "expired"
+	ExpiresAt  time.Time `json:"expires_at"`
+	CreatedAt  time.Time `json:"created_at"`
+}

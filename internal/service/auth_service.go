@@ -15,6 +15,7 @@ import (
 	"github.com/Kudzeri/job-prep-backend/internal/repository"
 	"github.com/Kudzeri/job-prep-backend/pkg/email"
 	"github.com/Kudzeri/job-prep-backend/pkg/jwt"
+	"github.com/google/uuid"
 )
 
 type AuthService struct {
@@ -114,4 +115,69 @@ func (s *AuthService) VerifyOTP(ctx context.Context, email, code, userAgent, ip 
 		AccessToken:  accessToken,
 		RefreshToken: refreshTokenStr,
 	}, nil
+}
+
+// InitTelegramAuth создает сессию авторизации и возвращает ссылку на бота
+func (s *AuthService) InitTelegramAuth(ctx context.Context, botUsername string) (string, string, error) {
+	authToken := uuid.New().String()
+	expiresAt := time.Now().Add(5 * time.Minute)
+
+	if err := s.repo.CreateTelegramSession(ctx, authToken, expiresAt); err != nil {
+		return "", "", err
+	}
+
+	deepLink := fmt.Sprintf("https://t.me/%s?start=%s", botUsername, authToken)
+	return authToken, deepLink, nil
+}
+
+// CheckTelegramAuth проверяет статус сессии и выдает JWT при успешном подтверждении
+func (s *AuthService) CheckTelegramAuth(ctx context.Context, authToken, userAgent, ip string) (*AuthTokens, bool, error) {
+	session, err := s.repo.GetTelegramSession(ctx, authToken)
+	if err != nil {
+		return nil, false, errors.New("сессия не найдена или истекла")
+	}
+
+	if session.Status != "approved" || session.TelegramID == nil {
+		// Ожидает подтверждения пользователем в ТГ
+		return nil, false, nil
+	}
+
+	user, err := s.repo.GetUserByTelegramID(ctx, *session.TelegramID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	// Генерируем JWT токены
+	accessToken, err := jwt.GenerateAccessToken(user.ID, user.Role, s.jwtSecret)
+	if err != nil {
+		return nil, false, err
+	}
+
+	refreshTokenStr, err := jwt.GenerateRefreshToken(user.ID, s.jwtSecret)
+	if err != nil {
+		return nil, false, err
+	}
+
+	// Сохраняем Refresh-токен
+	hash := sha256.Sum256([]byte(refreshTokenStr))
+	tokenHash := hex.EncodeToString(hash[:])
+
+	refreshTokenObj := &domain.RefreshToken{
+		UserID:    user.ID,
+		TokenHash: tokenHash,
+		UserAgent: userAgent,
+		IPAddress: ip,
+		ExpiresAt: time.Now().Add(30 * 24 * time.Hour),
+	}
+
+	if err := s.repo.SaveRefreshToken(ctx, refreshTokenObj); err != nil {
+		return nil, false, err
+	}
+
+	tokens := &AuthTokens{
+		AccessToken:  accessToken,
+		RefreshToken: refreshTokenStr,
+	}
+
+	return tokens, true, nil
 }
