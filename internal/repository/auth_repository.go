@@ -55,14 +55,15 @@ func (r *AuthRepository) MarkOTPAsUsed(ctx context.Context, otpID int64) error {
 
 func (r *AuthRepository) GetUserByEmail(ctx context.Context, email string) (*domain.User, error) {
 	query := `
-		SELECT id, email, email_verified, telegram_id, telegram_username, role, is_active, created_at, updated_at
+		SELECT id, email, email_verified, telegram_id, telegram_username, first_name, is_onboarded, role, is_active, created_at, updated_at
 		FROM users
 		WHERE email = $1
 	`
 	var user domain.User
 	err := r.db.QueryRow(ctx, query, email).Scan(
 		&user.ID, &user.Email, &user.EmailVerified, &user.TelegramID,
-		&user.TelegramUsername, &user.Role, &user.IsActive, &user.CreatedAt, &user.UpdatedAt,
+		&user.TelegramUsername, &user.FirstName, &user.IsOnboarded,
+		&user.Role, &user.IsActive, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -74,12 +75,13 @@ func (r *AuthRepository) CreateUserWithEmail(ctx context.Context, email string) 
 	query := `
 		INSERT INTO users (email, email_verified)
 		VALUES ($1, TRUE)
-		RETURNING id, email, email_verified, telegram_id, telegram_username, role, is_active, created_at, updated_at
+		RETURNING id, email, email_verified, telegram_id, telegram_username, first_name, is_onboarded, role, is_active, created_at, updated_at
 	`
 	var user domain.User
 	err := r.db.QueryRow(ctx, query, email).Scan(
 		&user.ID, &user.Email, &user.EmailVerified, &user.TelegramID,
-		&user.TelegramUsername, &user.Role, &user.IsActive, &user.CreatedAt, &user.UpdatedAt,
+		&user.TelegramUsername, &user.FirstName, &user.IsOnboarded,
+		&user.Role, &user.IsActive, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -139,14 +141,15 @@ func (r *AuthRepository) ConfirmTelegramSession(ctx context.Context, authToken s
 
 func (r *AuthRepository) GetUserByTelegramID(ctx context.Context, telegramID int64) (*domain.User, error) {
 	query := `
-		SELECT id, email, email_verified, telegram_id, telegram_username, role, is_active, created_at, updated_at
+		SELECT id, email, email_verified, telegram_id, telegram_username, first_name, is_onboarded, role, is_active, created_at, updated_at
 		FROM users
 		WHERE telegram_id = $1
 	`
 	var user domain.User
 	err := r.db.QueryRow(ctx, query, telegramID).Scan(
 		&user.ID, &user.Email, &user.EmailVerified, &user.TelegramID,
-		&user.TelegramUsername, &user.Role, &user.IsActive, &user.CreatedAt, &user.UpdatedAt,
+		&user.TelegramUsername, &user.FirstName, &user.IsOnboarded,
+		&user.Role, &user.IsActive, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err
@@ -158,12 +161,13 @@ func (r *AuthRepository) CreateUserWithTelegram(ctx context.Context, telegramID 
 	query := `
 		INSERT INTO users (telegram_id, telegram_username)
 		VALUES ($1, $2)
-		RETURNING id, email, email_verified, telegram_id, telegram_username, role, is_active, created_at, updated_at
+		RETURNING id, email, email_verified, telegram_id, telegram_username, first_name, is_onboarded, role, is_active, created_at, updated_at
 	`
 	var user domain.User
 	err := r.db.QueryRow(ctx, query, telegramID, username).Scan(
 		&user.ID, &user.Email, &user.EmailVerified, &user.TelegramID,
-		&user.TelegramUsername, &user.Role, &user.IsActive, &user.CreatedAt, &user.UpdatedAt,
+		&user.TelegramUsername, &user.FirstName, &user.IsOnboarded,
+		&user.Role, &user.IsActive, &user.CreatedAt, &user.UpdatedAt,
 	)
 	if err != nil {
 		return nil, err

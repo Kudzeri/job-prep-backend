@@ -8,6 +8,8 @@ type User struct {
 	EmailVerified    bool      `json:"email_verified"`
 	TelegramID       *int64    `json:"telegram_id"`
 	TelegramUsername *string   `json:"telegram_username"`
+	FirstName        *string   `json:"first_name"`
+	IsOnboarded      bool      `json:"is_onboarded"`
 	Role             string    `json:"role"`
 	IsActive         bool      `json:"is_active"`
 	CreatedAt        time.Time `json:"created_at"`

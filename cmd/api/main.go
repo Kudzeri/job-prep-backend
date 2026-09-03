@@ -45,6 +45,7 @@ func main() {
 	// 2. Подключаем БД
 	dbPool := database.NewPostgresPool(os.Getenv("DB_URL"))
 	defer dbPool.Close()
+	authRepo := repository.NewAuthRepository(dbPool)
 
 	// 3. Инициализируем Fiber v3
 	app := fiber.New(fiber.Config{
@@ -73,9 +74,18 @@ func main() {
 	})
 
 	// Инициализируем слои
-	authRepo := repository.NewAuthRepository(dbPool)
 	authService := service.NewAuthService(authRepo, emailSender, jwtSecret)
 	authHandler := handler.NewAuthHandler(authService)
+	userRepo := repository.NewUserRepository(dbPool)
+	userService := service.NewUserService(userRepo)
+	userHandler := handler.NewUserHandler(userService)
+
+	// Защищенная группа роутов через middleware.Protected
+	protectedAPI := app.Group("/api/v1", middleware.Protected(jwtSecret))
+
+	// Роуты пользователей
+	protectedAPI.Get("/users/me", userHandler.GetMe)
+	protectedAPI.Patch("/users/me", userHandler.CompleteProfile)
 
 	// Эндпоинты авторизации
 	authGroup := app.Group("/api/v1/auth")
