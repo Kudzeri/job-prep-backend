@@ -8,6 +8,7 @@ import (
 	"github.com/Kudzeri/job-prep-backend/internal/repository"
 	"github.com/Kudzeri/job-prep-backend/internal/service"
 	"github.com/Kudzeri/job-prep-backend/pkg/database"
+	"github.com/Kudzeri/job-prep-backend/pkg/email"
 	"github.com/Kudzeri/job-prep-backend/pkg/middleware"
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
@@ -30,6 +31,15 @@ func main() {
 	if jwtSecret == "" {
 		jwtSecret = "super-secret-key"
 	}
+
+	// Считываем конфиг SMTP
+	emailSender := email.NewSender(email.Config{
+		Host:     os.Getenv("SMTP_HOST"),
+		Port:     os.Getenv("SMTP_PORT"),
+		Username: os.Getenv("SMTP_USERNAME"),
+		Password: os.Getenv("SMTP_PASSWORD"),
+		From:     os.Getenv("SMTP_FROM"),
+	})
 
 	// 2. Подключаем БД
 	dbPool := database.NewPostgresPool(os.Getenv("DB_URL"))
@@ -54,7 +64,7 @@ func main() {
 
 	// Инициализируем слои
 	authRepo := repository.NewAuthRepository(dbPool)
-	authService := service.NewAuthService(authRepo, jwtSecret)
+	authService := service.NewAuthService(authRepo, emailSender, jwtSecret)
 	authHandler := handler.NewAuthHandler(authService)
 
 	// Эндпоинты авторизации

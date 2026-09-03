@@ -8,24 +8,26 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"log"
 	"math/big"
 	"time"
 
 	"github.com/Kudzeri/job-prep-backend/internal/domain"
 	"github.com/Kudzeri/job-prep-backend/internal/repository"
+	"github.com/Kudzeri/job-prep-backend/pkg/email"
 	"github.com/Kudzeri/job-prep-backend/pkg/jwt"
 )
 
 type AuthService struct {
-	repo      *repository.AuthRepository
-	jwtSecret string
+	repo        *repository.AuthRepository
+	emailSender *email.Sender
+	jwtSecret   string
 }
 
-func NewAuthService(repo *repository.AuthRepository, jwtSecret string) *AuthService {
+func NewAuthService(repo *repository.AuthRepository, emailSender *email.Sender, jwtSecret string) *AuthService {
 	return &AuthService{
-		repo:      repo,
-		jwtSecret: jwtSecret,
+		repo:        repo,
+		emailSender: emailSender,
+		jwtSecret:   jwtSecret,
 	}
 }
 
@@ -35,7 +37,7 @@ type AuthTokens struct {
 }
 
 // SendOTP генерирует 6-значный код и отправляет на Email
-func (s *AuthService) SendOTP(ctx context.Context, email string) error {
+func (s *AuthService) SendOTP(ctx context.Context, toEmail string) error {
 	// 1. Генерируем 6-значный случайный код
 	n, err := rand.Int(rand.Reader, big.NewInt(900000))
 	if err != nil {
@@ -43,14 +45,18 @@ func (s *AuthService) SendOTP(ctx context.Context, email string) error {
 	}
 	code := fmt.Sprintf("%06d", n.Int64()+100000)
 
-	// 2. Сохраняем в БД со сроком жизни 5 минут
+	// 2. Сохраняем в БД на 5 минут
 	expiresAt := time.Now().Add(5 * time.Minute)
-	if err := s.repo.SaveEmailOTP(ctx, email, code, expiresAt); err != nil {
+	if err := s.repo.SaveEmailOTP(ctx, toEmail, code, expiresAt); err != nil {
 		return err
 	}
 
-	// 3. Отправка на почту (в dev-режиме просто логируем в консоль)
-	log.Printf("[DEV OTP EMAIL] Код для %s: %s", email, code)
+	// 3. Реальная отправка письма через SMTP
+	if s.emailSender != nil {
+		if err := s.emailSender.SendOTP(toEmail, code); err != nil {
+			return fmt.Errorf("ошибка отправки email: %w", err)
+		}
+	}
 
 	return nil
 }
