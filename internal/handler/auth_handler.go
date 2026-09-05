@@ -35,7 +35,7 @@ func (h *AuthHandler) SendOTP(c fiber.Ctx) error {
 
 	if err := h.authService.SendOTP(c.Context(), req.Email); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "не удалось отправить OTP код",
+			"error": err.Error(),
 		})
 	}
 

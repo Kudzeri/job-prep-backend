@@ -1,0 +1,441 @@
+openapi: 3.0.3
+info:
+  title: Job Prep Backend API
+  version: 1.0.0
+  description: API для авторизации, профиля и Telegram-auth.
+servers:
+  - url: http://localhost:8080
+tags:
+  - name: Health
+  - name: Auth
+  - name: Users
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+              examples:
+                ok:
+                  value:
+                    status: ok
+                    message: Server is running!
+  /api/v1/auth/email/send:
+    post:
+      tags: [Auth]
+      summary: Send OTP to email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendOTPRequest"
+            example:
+              email: user@example.com
+      responses:
+        "200":
+          description: OTP sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+              example:
+                message: OTP код отправлен на ваш email
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: укажите корректный email
+        "500":
+          description: Send failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: не удалось отправить OTP код
+  /api/v1/auth/email/verify:
+    post:
+      tags: [Auth]
+      summary: Verify OTP and issue tokens
+      parameters:
+        - in: header
+          name: User-Agent
+          schema:
+            type: string
+          required: false
+          description: Передается автоматически клиентом
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyOTPRequest"
+            example:
+              email: user@example.com
+              code: "123456"
+      responses:
+        "200":
+          description: Tokens issued
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthTokens"
+              example:
+                access_token: <jwt_access_token>
+                refresh_token: <jwt_refresh_token>
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: email и code обязательны
+        "401":
+          description: OTP invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: неверный или истекший OTP код
+  /api/v1/auth/telegram/init:
+    post:
+      tags: [Auth]
+      summary: Create Telegram auth session
+      responses:
+        "200":
+          description: Session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TelegramInitResponse"
+              example:
+                auth_token: d7c6c4b3-1111-2222-3333-444455556666
+                deep_link: https://t.me/<bot_username>?start=d7c6c4b3-1111-2222-3333-444455556666
+        "500":
+          description: Init failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: не удалось инициализировать авторизацию
+  /api/v1/auth/telegram/check:
+    get:
+      tags: [Auth]
+      summary: Check Telegram auth session
+      parameters:
+        - in: query
+          name: auth_token
+          required: true
+          schema:
+            type: string
+          example: d7c6c4b3-1111-2222-3333-444455556666
+      responses:
+        "200":
+          description: Pending or approved status
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/TelegramPendingResponse"
+                  - $ref: "#/components/schemas/TelegramApprovedResponse"
+              examples:
+                pending:
+                  value:
+                    status: pending
+                approved:
+                  value:
+                    status: approved
+                    tokens:
+                      access_token: <jwt_access_token>
+                      refresh_token: <jwt_refresh_token>
+        "400":
+          description: Missing auth_token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: параметр auth_token обязателен
+        "401":
+          description: Session invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: сессия не найдена или истекла
+  /api/v1/users/me:
+    get:
+      tags: [Users]
+      summary: Get current profile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: неавторизован
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: пользователь не найден
+    patch:
+      tags: [Users]
+      summary: Update profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateProfileRequest"
+            example:
+              first_name: Ivan Updated
+      responses:
+        "200":
+          description: Updated profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: имя не может быть пустым
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: неавторизован
+  /api/v1/users/me/onboarding:
+    post:
+      tags: [Users]
+      summary: Complete onboarding
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteOnboardingRequest"
+            example:
+              first_name: Ivan
+      responses:
+        "200":
+          description: Onboarding complete
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: имя не может быть пустым
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error: неавторизован
+  /api/v1/profile:
+    get:
+      tags: [Users]
+      summary: Protected profile test route
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Access granted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfileAccessResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        message:
+          type: string
+          example: Server is running!
+      required: [status, message]
+    MessageResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required: [message]
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required: [error]
+    SendOTPRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+      required: [email]
+    VerifyOTPRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        code:
+          type: string
+      required: [email, code]
+    AuthTokens:
+      type: object
+      properties:
+        access_token:
+          type: string
+        refresh_token:
+          type: string
+      required: [access_token, refresh_token]
+    TelegramInitResponse:
+      type: object
+      properties:
+        auth_token:
+          type: string
+        deep_link:
+          type: string
+      required: [auth_token, deep_link]
+    TelegramPendingResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending]
+      required: [status]
+    TelegramApprovedResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [approved]
+        tokens:
+          $ref: "#/components/schemas/AuthTokens"
+      required: [status, tokens]
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        email:
+          type: string
+          nullable: true
+        email_verified:
+          type: boolean
+        telegram_id:
+          type: integer
+          format: int64
+          nullable: true
+        telegram_username:
+          type: string
+          nullable: true
+        first_name:
+          type: string
+          nullable: true
+        is_onboarded:
+          type: boolean
+        role:
+          type: string
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+      required:
+        - id
+        - email_verified
+        - is_onboarded
+        - role
+        - is_active
+        - created_at
+        - updated_at
+    CompleteOnboardingRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+      required: [first_name]
+    UpdateProfileRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+          nullable: true
+    ProfileAccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+        user_id:
+          type: integer
+          format: int64
+        role:
+          type: string
+      required: [message, user_id, role]
