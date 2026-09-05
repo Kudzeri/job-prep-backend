@@ -46,6 +46,9 @@ func main() {
 
 	// 2. Подключаем БД
 	dbPool := database.NewPostgresPool(os.Getenv("DB_URL"))
+	if err := database.EnsureSchema(dbPool); err != nil {
+		log.Fatalf("Не удалось инициализировать схему БД: %v", err)
+	}
 	defer dbPool.Close()
 	authRepo := repository.NewAuthRepository(dbPool)
 
