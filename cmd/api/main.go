@@ -54,7 +54,8 @@ func main() {
 
 	// 3. Инициализируем Fiber v3
 	app := fiber.New(fiber.Config{
-		AppName: "Job Prep Backend v1.0",
+		AppName:   "Job Prep Backend v1.0",
+		BodyLimit: 32 * 1024 * 1024,
 	})
 
 	// Запуск Telegram-бота в фоне
@@ -112,7 +113,7 @@ func main() {
 		},
 		AllowOrigins:     origins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "User-Agent"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "User-Agent", "X-API-Key"},
 		AllowCredentials: true,
 		MaxAge:           86400,
 	}))
@@ -134,9 +135,14 @@ func main() {
 	userHandler := handler.NewUserHandler(userService)
 	testRepo := repository.NewTestRepository(dbPool)
 	testHandler := handler.NewIntegrationTestHandler(testRepo)
+	userTestHandler := handler.NewUserTestHandler(testRepo)
+	assistantRepo := repository.NewAssistantRepository(dbPool)
+	assistantHandler := handler.NewAssistantHandler(assistantRepo, os.Getenv("ASSESSMENT_SERVICE_URL"), os.Getenv("ASSESSMENT_SERVICE_API_KEY"), os.Getenv("ASSESSMENT_CALLBACK_SECRET"), os.Getenv("PUBLIC_API_URL"))
 
 	// API для интеграции с внешними сайтами. Ключ передается в X-API-Key.
 	integrations := app.Group("/api/v1/integrations", middleware.APIKey(os.Getenv("INTEGRATION_API_KEY")))
+	integrations.Get("/tests", testHandler.ListTests)
+	integrations.Get("/tests/:testId", testHandler.GetTest)
 	integrations.Post("/tests", testHandler.CreateTest)
 	integrations.Post("/tests/:testId/questions", testHandler.AddQuestion)
 	integrations.Post("/tests/:testId/questions/batch", testHandler.AddQuestions)
@@ -153,6 +159,14 @@ func main() {
 	protectedUsers.Get("/me", userHandler.GetMe)
 	protectedUsers.Post("/me/onboarding", userHandler.CompleteOnboarding)
 	protectedUsers.Patch("/me", userHandler.UpdateProfile)
+	app.Get("/api/v1/users/me/tests", middleware.Protected(jwtSecret), userTestHandler.List)
+	app.Post("/api/v1/users/me/tests", middleware.Protected(jwtSecret), userTestHandler.Create)
+	app.Get("/api/v1/users/me/tests/:testId", middleware.Protected(jwtSecret), userTestHandler.Get)
+	app.Post("/api/v1/users/me/tests/:testId/questions", middleware.Protected(jwtSecret), userTestHandler.AddQuestion)
+	app.Post("/api/v1/users/me/tests/:testId/questions/batch", middleware.Protected(jwtSecret), userTestHandler.AddQuestions)
+	app.Post("/api/v1/assistant/chat", middleware.Protected(jwtSecret), assistantHandler.Chat)
+	app.Get("/api/v1/assistant/requests/:requestId", middleware.Protected(jwtSecret), assistantHandler.GetRequest)
+	app.Post("/api/v1/integrations/assistant/callback", assistantHandler.Callback)
 
 	app.Get("/api/v1/profile", middleware.Protected(jwtSecret), func(c fiber.Ctx) error {
 		userID := c.Locals(middleware.LocalUserIDKey).(int64)

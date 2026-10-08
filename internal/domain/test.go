@@ -19,6 +19,16 @@ type Test struct {
 	Description string `json:"description"`
 }
 
+type TestSummary struct {
+	Test
+	QuestionCount int `json:"question_count"`
+}
+
+type TestDetails struct {
+	Test
+	Questions []QuestionResult `json:"questions"`
+}
+
 type QuestionResult struct {
 	ID      int64           `json:"id"`
 	TestID  int64           `json:"test_id"`

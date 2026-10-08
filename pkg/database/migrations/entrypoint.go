@@ -33,5 +33,6 @@ func All() []SchemaFile {
 		RefreshTokens(),
 		TelegramAuthSessions(),
 		Tests(),
+		AssistantRequests(),
 	}
 }

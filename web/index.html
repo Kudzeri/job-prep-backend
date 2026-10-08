@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f6f7f4" />
+  <title>Prepwise — кабинет подготовки</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = { theme: { extend: { fontFamily: { sans: ['DM Sans', 'sans-serif'], display: ['Manrope', 'sans-serif'] }, colors: { ink: '#17231e', muted: '#78847e', leaf: '#4e795f', canvas: '#f6f7f4', line: '#e8ebe6' }, boxShadow: { soft: '0 14px 40px rgba(27, 48, 35, .06)' } } } };
+  </script>
+  <style>
+    * { box-sizing: border-box }
+    body { background:#f6f7f4; color:#17231e; }
+    button,input,textarea { font:inherit }
+    .nav-link.active { background:#eaf0e9; color:#345b43; }
+    nav[data-primary] { display:flex; flex-direction:column; }
+    nav[data-primary] [data-view="chat"] { order:2; }
+    nav[data-primary] [data-view="tests"] { order:3; }
+    .nav-link.active .nav-icon { background:#dce8dc; color:#456d53; }
+    .view { display:none; animation:appear .22s ease-out }
+    .view.active { display:block }
+    @keyframes appear { from {opacity:0;transform:translateY(5px)} to {opacity:1;transform:translateY(0)} }
+    .loader { width:16px;height:16px;border:2px solid #d8e2d9;border-top-color:#4e795f;border-radius:50%;animation:spin .7s linear infinite }
+    @keyframes spin { to {transform:rotate(360deg)} }
+    .scrollbar::-webkit-scrollbar { width:6px }
+    .scrollbar::-webkit-scrollbar-thumb { background:#d8ddd7;border-radius:9px }
+    @media (max-width: 767px) { .mobile-open #sidebar { transform:translateX(0) } }
+  </style>
+</head>
+<body class="min-h-screen font-sans antialiased">
+  <div id="mobileShade" class="fixed inset-0 z-30 hidden bg-ink/30 md:hidden"></div>
+  <div class="min-h-screen md:flex">
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 flex w-[258px] -translate-x-full flex-col border-r border-line bg-white px-4 py-5 transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0">
+      <div class="flex items-center gap-3 px-3 pb-8 pt-1">
+        <div class="grid h-10 w-10 place-items-center rounded-[14px] bg-[#20382b] text-white shadow-sm">
+          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 18.5 9.5 5l4.7 13.5M7 13h5.2M15.2 7.5h3.3a2.8 2.8 0 0 1 0 5.6h-3.3m0-5.6v11" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div><div class="font-display text-[17px] font-extrabold tracking-[-.04em]">prepwise<span class="text-[#6d9a72]">.</span></div><div class="text-[10px] font-semibold uppercase tracking-[.15em] text-muted">interview studio</div></div>
+      </div>
+      <div class="px-3 pb-2 text-[10px] font-bold uppercase tracking-[.16em] text-[#a3ada6]">Рабочее пространство</div>
+      <nav data-primary class="space-y-1" aria-label="Основная навигация">
+        <button data-view="home" class="nav-link active flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold text-[#707c74] transition hover:bg-[#f5f7f4]"><span class="nav-icon grid h-8 w-8 place-items-center rounded-lg bg-transparent text-current"><svg class="h-[17px] w-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg></span>Обзор</button>
+        <button data-view="tests" class="nav-link flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold text-[#707c74] transition hover:bg-[#f5f7f4]"><span class="nav-icon grid h-8 w-8 place-items-center rounded-lg"><svg class="h-[17px] w-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 4.5h8M8 3h8a1 1 0 0 1 1 1v2H7V4a1 1 0 0 1 1-1ZM6 5H5a1 1 0 0 0-1 1v14h16V6a1 1 0 0 0-1-1h-1" stroke-linecap="round" stroke-linejoin="round"/><path d="m8 13 2 2 5-5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Мои тесты<span id="navTestCount" class="ml-auto rounded-md bg-[#f0f2ef] px-1.5 py-0.5 text-[10px] text-muted">—</span></button>
+        <button data-view="chat" class="nav-link flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold text-[#707c74] transition hover:bg-[#f5f7f4]"><span class="nav-icon grid h-8 w-8 place-items-center rounded-lg"><svg class="h-[17px] w-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 11.5a7.5 7.5 0 0 1-7.5 7.5H6l-3 2v-6.5A7.5 7.5 0 1 1 20 11.5Z" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 11h.01M12 11h.01M16 11h.01" stroke-linecap="round" stroke-width="2.5"/></svg></span>AI-чат<span class="ml-auto rounded-md bg-[#eaf0e9] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#618169]">главное</span></button>
+      </nav>
+      <div class="mt-8 px-3 pb-2 text-[10px] font-bold uppercase tracking-[.16em] text-[#a3ada6]">Настройки</div>
+      <button data-view="settings" class="nav-link flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold text-[#707c74] transition hover:bg-[#f5f7f4]"><span class="nav-icon grid h-8 w-8 place-items-center rounded-lg"><svg class="h-[17px] w-[17px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="m19.4 15 .1.1a1.7 1.7 0 0 1-2.4 2.4l-.1-.1a1.7 1.7 0 0 0-2.9 1.2v.2a1.7 1.7 0 0 1-3.4 0v-.2a1.7 1.7 0 0 0-2.9-1.2l-.1.1a1.7 1.7 0 0 1-2.4-2.4l.1-.1a1.7 1.7 0 0 0-1.2-2.9H4a1.7 1.7 0 0 1 0-3.4h.2a1.7 1.7 0 0 0 1.2-2.9l-.1-.1a1.7 1.7 0 0 1 2.4-2.4l.1.1a1.7 1.7 0 0 0 2.9-1.2V2a1.7 1.7 0 0 1 3.4 0v.2a1.7 1.7 0 0 0 2.9 1.2l.1-.1a1.7 1.7 0 0 1 2.4 2.4l-.1.1a1.7 1.7 0 0 0 1.2 2.9h.2a1.7 1.7 0 0 1 0 3.4h-.2a1.7 1.7 0 0 0-1.2 2.9Z" stroke-linecap="round" stroke-linejoin="round"/></svg></span>Подключение API</button>
+      <div class="mt-auto rounded-2xl bg-[#f6f8f4] p-3.5">
+        <div class="flex items-center gap-2"><span id="apiDot" class="h-2 w-2 rounded-full bg-[#c6cec8]"></span><span id="apiState" class="text-[11px] font-semibold text-muted">API не проверен</span></div>
+        <div id="miniApiUrl" class="mt-2 truncate text-[10px] text-[#9aa59d]">Укажи адрес в настройках</div>
+      </div>
+      <div class="mt-3 flex items-center gap-3 rounded-xl px-2 py-2">
+        <div id="avatar" class="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#e9eee8] text-xs font-bold text-[#52725a]">PW</div>
+        <div class="min-w-0 flex-1"><div id="userLabel" class="truncate text-[12px] font-bold">Гость</div><div id="userSub" class="truncate text-[10px] text-muted">Войди, чтобы продолжить</div></div>
+        <button id="logoutBtn" class="hidden rounded-lg p-2 text-muted hover:bg-white" title="Выйти"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5M15 12H3m9-8h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      </div>
+    </aside>
+
+    <main class="min-w-0 flex-1">
+      <header class="sticky top-0 z-20 flex h-[68px] items-center justify-between border-b border-line/80 bg-canvas/90 px-4 backdrop-blur-md sm:px-7 lg:px-10">
+        <div class="flex items-center gap-3"><button id="menuBtn" class="rounded-lg border border-line bg-white p-2 text-ink md:hidden"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button><div class="text-[11px] font-medium text-muted">Рабочее пространство <span class="px-1.5 text-[#bdc5bf]">/</span><span id="crumb" class="font-semibold text-ink">Обзор</span></div></div>
+        <div class="flex items-center gap-2 sm:gap-3"><span class="hidden text-[11px] text-muted sm:block">Подготовка к интервью</span><button id="headerAuth" class="rounded-lg border border-line bg-white px-3 py-2 text-[11px] font-bold text-ink transition hover:border-[#b7c9b8]">Войти в аккаунт</button></div>
+      </header>
+      <div class="mx-auto max-w-[1320px] px-4 py-7 sm:px-7 sm:py-9 lg:px-10">
+        <section id="view-home" class="view active">
+          <div class="mb-7 flex flex-col justify-between gap-5 sm:flex-row sm:items-end"><div><div class="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.18em] text-leaf"><span class="h-1.5 w-1.5 rounded-full bg-[#76a477]"></span>Подготовка к интервью</div><h1 class="font-display text-[30px] font-bold leading-tight tracking-[-.045em] sm:text-[38px]">Найди работу,<br class="sm:hidden"/> в которой раскроешься.</h1><p class="mt-2 max-w-xl text-[13px] leading-5 text-muted">Prepwise помогает подготовиться к собеседованию: обсуди свои вопросы с помощником или потренируйся на персональном тесте.</p></div><button data-go="chat" class="rounded-xl bg-[#284333] px-4 py-3 text-[12px] font-bold text-white shadow-sm transition hover:bg-[#355740]">Поговорить с помощником <span class="ml-2">→</span></button></div>
+          <div class="grid gap-4 sm:grid-cols-3">
+            <div class="rounded-2xl border border-line bg-white p-5 shadow-soft"><div class="flex items-start justify-between"><div class="text-[11px] font-semibold text-muted">Всего тестов</div><span class="grid h-8 w-8 place-items-center rounded-lg bg-[#edf3ec] text-leaf"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 4.5h8M8 3h8a1 1 0 0 1 1 1v2H7V4a1 1 0 0 1 1-1ZM6 5H5a1 1 0 0 0-1 1v14h16V6a1 1 0 0 0-1-1h-1" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 11h8M8 15h5" stroke-linecap="round"/></svg></span></div><div id="statTests" class="mt-5 font-display text-[32px] font-bold tracking-[-.05em]">—</div><div class="mt-1 text-[10px] text-muted">в библиотеке</div></div>
+            <div class="rounded-2xl border border-line bg-white p-5 shadow-soft"><div class="flex items-start justify-between"><div class="text-[11px] font-semibold text-muted">Вопросов</div><span class="grid h-8 w-8 place-items-center rounded-lg bg-[#f1f0e9] text-[#8b7d4c]"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9.1 9a3 3 0 1 1 5.5 1.7c-1.1 1.2-2.6 1.6-2.6 3.3M12 18h.01" stroke-linecap="round"/><circle cx="12" cy="12" r="9"/></svg></span></div><div id="statQuestions" class="mt-5 font-display text-[32px] font-bold tracking-[-.05em]">—</div><div class="mt-1 text-[10px] text-muted">готовы к практике</div></div>
+            <div class="rounded-2xl border border-line bg-white p-5 shadow-soft"><div class="flex items-start justify-between"><div class="text-[11px] font-semibold text-muted">Сервис</div><span class="grid h-8 w-8 place-items-center rounded-lg bg-[#edf3ec] text-leaf"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 12.5 9.2 17 19 7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9"/></svg></span></div><div id="statService" class="mt-5 font-display text-[20px] font-bold tracking-[-.04em]">Не подключён</div><div id="statServiceSub" class="mt-1 text-[10px] text-muted">Добавь адрес API в настройках</div></div>
+          </div>
+          <div class="mt-7 grid gap-5 lg:grid-cols-[1.45fr_.8fr]">
+            <div class="rounded-2xl border border-line bg-white p-5 shadow-soft sm:p-6"><div class="flex items-center justify-between"><div><h2 class="font-display text-[16px] font-bold tracking-[-.025em]">Недавние тесты</h2><p class="mt-1 text-[11px] text-muted">Продолжи с того места, где остановился</p></div><button data-go="tests" class="text-[11px] font-bold text-leaf hover:underline">Все тесты →</button></div><div id="recentTests" class="mt-5 space-y-2"><div class="rounded-xl border border-dashed border-line px-4 py-8 text-center text-[12px] text-muted">Подключи API, чтобы загрузить тесты.</div></div></div>
+            <div class="relative overflow-hidden rounded-2xl bg-[#253d30] p-6 text-white shadow-soft"><div class="absolute -right-10 -top-12 h-40 w-40 rounded-full border border-white/10"></div><div class="absolute -right-2 -top-5 h-24 w-24 rounded-full border border-white/10"></div><div class="relative"><span class="inline-flex items-center gap-1.5 rounded-md bg-white/10 px-2 py-1 text-[9px] font-bold uppercase tracking-[.14em] text-[#c9ddc5]">Твой AI-помощник</span><h2 class="mt-5 font-display text-[22px] font-bold leading-snug tracking-[-.04em]">Начни с простого<br/>вопроса.</h2><p class="mt-2 max-w-[250px] text-[11px] leading-5 text-white/65">Обсуди подготовку или попроси составить тест по своему резюме.</p><button data-go="chat" class="mt-6 rounded-lg bg-[#dce9d8] px-3.5 py-2.5 text-[10px] font-bold text-[#284333] hover:bg-white">Открыть AI-чат <span class="ml-1.5">↗</span></button></div></div>
+          </div>
+          <div class="mt-5 rounded-2xl border border-[#e5e9e1] bg-[#f0f3ed] p-4 sm:flex sm:items-center sm:justify-between"><div class="flex items-center gap-3"><div class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-white text-[#77845f]"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v2m0 14v2M3 12h2m14 0h2M5.6 5.6 7 7m10 10 1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" stroke-linecap="round"/><circle cx="12" cy="12" r="4"/></svg></div><div><div class="text-[11px] font-bold">Нужна помощь с подготовкой?</div><div class="mt-0.5 text-[10px] text-muted">Помощник ответит на простые вопросы и подготовит персональный тест.</div></div></div><button data-go="chat" class="mt-3 text-[10px] font-bold text-leaf sm:mt-0">Перейти в чат →</button></div>
+        </section>
+
+        <section id="view-tests" class="view">
+          <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><div class="mb-2 text-[10px] font-bold uppercase tracking-[.18em] text-leaf">Библиотека</div><h1 class="font-display text-[32px] font-bold tracking-[-.045em]">Мои тесты</h1><p class="mt-1.5 text-[12px] text-muted">Материалы для уверенной подготовки к интервью.</p></div><button id="newTestBtn" class="rounded-xl bg-[#284333] px-4 py-3 text-[11px] font-bold text-white transition hover:bg-[#355740]">＋ <span class="ml-1">Создать тест</span></button></div>
+          <div id="testsNotice" class="mt-5 hidden rounded-xl border px-4 py-3 text-[11px]"></div>
+          <div class="mt-5 grid gap-4 sm:grid-cols-2 xl:grid-cols-3" id="testGrid"><div class="col-span-full rounded-2xl border border-dashed border-line bg-white px-6 py-12 text-center text-[12px] text-muted">Подключи адрес API и ключ в разделе «Подключение API», затем загрузи тесты.</div></div>
+          <div class="mt-4 flex justify-end"><button id="refreshTests" class="rounded-lg border border-line bg-white px-3 py-2 text-[10px] font-bold text-muted hover:text-ink">↻ <span class="ml-1">Обновить список</span></button></div>
+        </section>
+
+        <section id="view-test-detail" class="view">
+          <button id="backTests" class="mb-5 text-[11px] font-bold text-muted hover:text-leaf">← <span class="ml-1">Все тесты</span></button>
+          <div id="testDetail"></div>
+        </section>
+
+        <section id="view-chat" class="view">
+          <div class="mb-5"><div class="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[.18em] text-leaf"><span class="h-1.5 w-1.5 rounded-full bg-[#76a477]"></span>Твой помощник</div><h1 class="font-display text-[32px] font-bold tracking-[-.045em]">Давай подготовимся.</h1><p class="mt-1.5 text-[12px] text-muted">Спроси о подготовке или попроси составить тест по твоему резюме.</p></div>
+          <div class="mx-auto flex min-h-[580px] max-w-[850px] flex-col overflow-hidden rounded-2xl border border-line bg-white shadow-soft"><div class="flex items-center gap-3 border-b border-line px-5 py-4"><div class="grid h-9 w-9 place-items-center rounded-xl bg-[#eaf0e9] text-leaf"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3 1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3ZM19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16Z" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div><div class="text-[12px] font-bold">Prepwise</div><div class="mt-0.5 flex items-center gap-1.5 text-[10px] text-muted"><span class="h-1.5 w-1.5 rounded-full bg-[#76a477]"></span>На связи</div></div><span class="ml-auto rounded-md bg-[#edf3ec] px-2 py-1 text-[9px] font-bold uppercase tracking-wider text-[#618169]">Помощник</span></div>
+            <div id="chatMessages" aria-live="polite" class="scrollbar flex min-h-[290px] flex-1 flex-col gap-4 overflow-y-auto px-4 py-5 sm:px-6"><div class="flex items-start gap-2.5"><div class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#eaf0e9] text-[9px] font-bold text-leaf">P</div><div class="max-w-[85%] rounded-2xl rounded-tl-md bg-[#f3f6f1] px-4 py-3 text-[11px] leading-5 text-[#405047]">Привет! Я помогу тебе подготовиться к интервью. Могу подсказать, с чего начать, или составить персональный тест по резюме. Чем займёмся?</div></div></div>
+            <div class="flex flex-wrap gap-2 px-4 pb-3 sm:px-6"><button data-prompt="Привет!" class="chat-suggestion rounded-full border border-line px-3 py-2 text-[9px] font-semibold text-[#68766c] transition hover:border-[#b8cbb9] hover:text-leaf">Привет 👋</button><button data-prompt="Как ты можешь помочь?" class="chat-suggestion rounded-full border border-line px-3 py-2 text-[9px] font-semibold text-[#68766c] transition hover:border-[#b8cbb9] hover:text-leaf">Как ты можешь помочь?</button><button data-prompt="Хочу создать тест по моему резюме" class="chat-suggestion rounded-full border border-line px-3 py-2 text-[9px] font-semibold text-[#68766c] transition hover:border-[#b8cbb9] hover:text-leaf">Составить тест по резюме</button></div>
+            <form id="chatForm" class="border-t border-line bg-[#fcfdfb] p-4 sm:p-5"><div class="mb-3 grid gap-2 sm:grid-cols-2"><label class="flex cursor-pointer items-center gap-2 rounded-xl border border-[#e8ebe6] bg-white px-3 py-2.5 transition hover:border-[#b8cbb9]"><span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#edf3ec] text-leaf"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h6" stroke-linecap="round"/></svg></span><span class="min-w-0 flex-1"><span class="block text-[9px] font-bold">Резюме <span class="text-[#a65f55]">· обязательно</span></span><span id="resumeLabel" class="mt-0.5 block truncate text-[8px] text-muted">PDF до 10 МБ</span></span><input id="resumeFile" type="file" accept="application/pdf,.pdf" class="hidden" required /></label><label class="flex cursor-pointer items-center gap-2 rounded-xl border border-[#e8ebe6] bg-white px-3 py-2.5 transition hover:border-[#b8cbb9]"><span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#f3f0e8] text-[#8b7d4c]"><svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg></span><span class="min-w-0 flex-1"><span class="block text-[9px] font-bold">Дополнительные материалы <span class="font-medium text-muted">· до 2 файлов</span></span><span id="attachmentsLabel" class="mt-0.5 block truncate text-[8px] text-muted">PDF, DOCX, TXT или MD</span></span><input id="attachmentFiles" type="file" accept="application/pdf,.pdf,.docx,.txt,.md" multiple class="hidden" /></label></div><div class="flex items-end gap-2"><textarea id="chatInput" rows="1" maxlength="2000" class="max-h-28 min-h-11 min-w-0 flex-1 resize-y rounded-xl border border-line bg-white px-3.5 py-3 text-[11px] leading-5 outline-none placeholder:text-[#a2ada5] focus:border-[#94b29a] focus:ring-4 focus:ring-[#e9f0e8]" placeholder="Напиши сообщение…"></textarea><button id="chatSend" class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#284333] text-white transition hover:bg-[#355740] disabled:cursor-not-allowed disabled:opacity-50" title="Отправить"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m22 2-7 20-4-9-9-4 20-7ZM22 2 11 13" stroke-linecap="round" stroke-linejoin="round"/></svg></button></div><div id="uploadError" class="mt-2 min-h-3 text-[9px] text-[#a65f55]"></div><div class="mt-1 text-[8px] leading-4 text-muted">Для персонального теста прикрепи резюме. Файлы передаются только подключённому сервису генерации.</div></form>
+          </div>
+        </section>
+
+        <section id="view-settings" class="view">
+          <div class="mb-6"><div class="mb-2 text-[10px] font-bold uppercase tracking-[.18em] text-leaf">Подключение</div><h1 class="font-display text-[32px] font-bold tracking-[-.045em]">Настройки API</h1><p class="mt-1.5 text-[12px] text-muted">Укажи адрес backend и ключ доступа для библиотеки тестов.</p></div>
+          <div class="max-w-[760px] space-y-4">
+            <div class="rounded-2xl border border-line bg-white p-5 shadow-soft sm:p-6"><div class="mb-5 flex items-start gap-3"><div class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#edf3ec] text-leaf"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" stroke-linecap="round"/></svg></div><div><h2 class="text-[13px] font-bold">Адрес API</h2><p class="mt-1 text-[10px] leading-4 text-muted">Базовый URL сервера, например https://job-prep-api.onrender.com</p></div></div><label for="apiInput" class="mb-1.5 block text-[10px] font-bold text-[#556159]">Backend URL</label><input id="apiInput" type="url" placeholder="https://your-api.onrender.com" class="w-full rounded-xl border border-line bg-[#fbfcfa] px-3.5 py-3 text-[11px] outline-none transition placeholder:text-[#adb6af] focus:border-[#94b29a] focus:ring-4 focus:ring-[#e9f0e8]"/><div class="mt-2 text-[9px] text-muted">Вводи домен без конечного слеша. Все запросы приложения отправляются на этот адрес.</div></div>
+            <div class="rounded-2xl border border-line bg-white p-5 shadow-soft sm:p-6"><div class="mb-5 flex items-start gap-3"><div class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#f4f1e9] text-[#8b7d4c]"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 1 1 8 0v3m-4 5v2" stroke-linecap="round"/></svg></div><div><h2 class="text-[13px] font-bold">Ключ интеграции</h2><p class="mt-1 text-[10px] leading-4 text-muted">Для внешнего сайта и общей библиотеки. Личные тесты доступны после входа в аккаунт.</p></div></div><label for="keyInput" class="mb-1.5 block text-[10px] font-bold text-[#556159]">X-API-Key</label><input id="keyInput" type="password" autocomplete="off" placeholder="Вставь INTEGRATION_API_KEY" class="w-full rounded-xl border border-line bg-[#fbfcfa] px-3.5 py-3 text-[11px] outline-none transition placeholder:text-[#adb6af] focus:border-[#94b29a] focus:ring-4 focus:ring-[#e9f0e8]"/><div class="mt-2 rounded-lg bg-[#faf7ee] px-3 py-2 text-[9px] leading-4 text-[#87794e]">Ключ даёт право читать и создавать общие тесты. Не размещай его в публичном коде сайта. Введённый здесь ключ не сохраняется после закрытия вкладки.</div></div>
+            <div class="flex flex-wrap items-center gap-2"><button id="saveApi" class="rounded-xl bg-[#284333] px-4 py-3 text-[10px] font-bold text-white hover:bg-[#355740]">Сохранить и проверить</button><button id="clearApi" class="rounded-xl border border-line bg-white px-4 py-3 text-[10px] font-bold text-muted hover:text-ink">Очистить настройки</button><span id="settingsFeedback" class="text-[10px] text-muted"></span></div>
+            <div class="rounded-2xl border border-line bg-white p-5 shadow-soft sm:p-6"><div class="flex items-start justify-between gap-4"><div><h2 class="text-[13px] font-bold">Пользовательский аккаунт</h2><p class="mt-1 text-[10px] leading-4 text-muted">Вход по email-коду. Для отправки кода на сервере должны быть настроены SMTP-переменные.</p></div><button id="settingsAuth" class="shrink-0 rounded-lg border border-line px-3 py-2 text-[10px] font-bold hover:border-[#b7c9b8]">Войти</button></div></div>
+          </div>
+        </section>
+      </div>
+      <footer class="mx-auto flex max-w-[1320px] items-center justify-between border-t border-line px-4 py-5 text-[9px] text-[#9aa49d] sm:px-7 lg:px-10"><span>© 2026 Prepwise Studio</span><span>Подготовка, которая приближает к цели.</span></footer>
+    </main>
+  </div>
+
+  <div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-[#14251c]/35 p-4 backdrop-blur-[2px]"><div class="w-full max-w-[430px] rounded-2xl border border-white/70 bg-white p-5 shadow-[0_25px_90px_rgba(20,37,28,.22)] sm:p-6"><div class="flex items-start justify-between"><div><div class="text-[10px] font-bold uppercase tracking-[.16em] text-leaf">Аккаунт</div><h2 class="mt-1 font-display text-[20px] font-bold tracking-[-.03em]">Войти по email</h2><p class="mt-1 text-[10px] text-muted">Отправим одноразовый код на почту.</p></div><button id="closeModal" class="rounded-lg p-2 text-muted hover:bg-[#f4f6f3]">×</button></div><div id="authStepEmail" class="mt-5"><label class="mb-1.5 block text-[10px] font-bold">Email</label><input id="authEmail" type="email" placeholder="name@example.com" class="w-full rounded-xl border border-line bg-[#fbfcfa] px-3.5 py-3 text-[11px] outline-none focus:border-[#94b29a] focus:ring-4 focus:ring-[#e9f0e8]"/><button id="sendCode" class="mt-3 w-full rounded-xl bg-[#284333] py-3 text-[11px] font-bold text-white hover:bg-[#355740]">Отправить код</button></div><div id="authStepCode" class="mt-5 hidden"><label class="mb-1.5 block text-[10px] font-bold">Код из письма</label><input id="authCode" inputmode="numeric" autocomplete="one-time-code" placeholder="123456" class="w-full rounded-xl border border-line bg-[#fbfcfa] px-3.5 py-3 text-[11px] tracking-[.2em] outline-none focus:border-[#94b29a] focus:ring-4 focus:ring-[#e9f0e8]"/><button id="verifyCode" class="mt-3 w-full rounded-xl bg-[#284333] py-3 text-[11px] font-bold text-white hover:bg-[#355740]">Подтвердить и войти</button><button id="backToEmail" class="mt-3 w-full text-[10px] font-semibold text-muted hover:text-leaf">Изменить email</button></div><button id="telegramLogin" class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-line py-3 text-[10px] font-bold text-[#526158] hover:bg-[#f8f9f7]"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M21.5 3.5 18.2 20c-.25 1.17-.92 1.46-1.87.91l-5.18-3.82-2.5 2.4c-.28.28-.51.51-1.05.51l.37-5.27 9.6-8.68c.42-.37-.09-.58-.65-.21L5.05 13.3.02 11.73c-1.1-.34-1.12-1.1.23-1.61L19.9 2.55c.91-.34 1.71.22 1.6.95Z"/></svg>Продолжить через Telegram</button><div id="authFeedback" class="mt-3 min-h-4 text-center text-[10px] text-muted"></div></div></div>
+
+  <div id="newTestModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-[#14251c]/35 p-4 backdrop-blur-[2px]"><form id="newTestForm" class="w-full max-w-[430px] rounded-2xl border border-white/70 bg-white p-5 shadow-[0_25px_90px_rgba(20,37,28,.22)] sm:p-6"><div class="flex items-start justify-between"><div><div class="text-[10px] font-bold uppercase tracking-[.16em] text-leaf">Библиотека</div><h2 class="mt-1 font-display text-[20px] font-bold tracking-[-.03em]">Новый тест</h2><p class="mt-1 text-[10px] text-muted">Создай тест, а вопросы добавь на следующем шаге.</p></div><button type="button" id="closeNewTest" class="rounded-lg p-2 text-muted hover:bg-[#f4f6f3]">×</button></div><label class="mb-1.5 mt-5 block text-[10px] font-bold">Название теста</label><input id="newTestTitle" required maxlength="160" placeholder="Например, Go: основы" class="w-full rounded-xl border border-line bg-[#fbfcfa] px-3.5 py-3 text-[11px] outline-none focus:border-[#94b29a] focus:ring-4 focus:ring-[#e9f0e8]"/><label class="mb-1.5 mt-4 block text-[10px] font-bold">Описание <span class="font-normal text-muted">необязательно</span></label><textarea id="newTestDescription" rows="3" maxlength="1000" placeholder="Коротко о содержании теста" class="w-full resize-none rounded-xl border border-line bg-[#fbfcfa] px-3.5 py-3 text-[11px] outline-none focus:border-[#94b29a] focus:ring-4 focus:ring-[#e9f0e8]"></textarea><div id="newTestFeedback" class="mt-2 min-h-4 text-[10px] text-[#a65f55]"></div><div class="mt-3 flex justify-end gap-2"><button type="button" id="cancelNewTest" class="rounded-lg border border-line px-3 py-2 text-[10px] font-bold text-muted">Отмена</button><button id="submitNewTest" class="rounded-lg bg-[#284333] px-4 py-2 text-[10px] font-bold text-white hover:bg-[#355740]">Создать тест</button></div></form></div>
+
+  <div id="toast" class="fixed bottom-5 right-5 z-[60] hidden max-w-[min(360px,calc(100vw-40px))] rounded-xl bg-[#20382b] px-4 py-3 text-[11px] font-semibold text-white shadow-xl"></div>
+
+  <script>
+    const API_STORAGE = 'prepwise_api_url';
+    const TOKEN_STORAGE = 'prepwise_access_token';
+    let tests = [];
+    let activeTestId = null;
+    let authEmail = '';
+    let telegramTimer = null;
+    const $ = (id) => document.getElementById(id);
+    const apiBase = () => (localStorage.getItem(API_STORAGE) || '').trim().replace(/\/+$/, '');
+    const apiKey = () => sessionStorage.getItem('prepwise_api_key') || '';
+    const accessToken = () => sessionStorage.getItem(TOKEN_STORAGE) || '';
+    const testAccessMode = () => accessToken() ? 'jwt' : apiKey() ? 'key' : '';
+    const testsEndpoint = () => testAccessMode()==='jwt' ? '/api/v1/users/me/tests' : '/api/v1/integrations/tests';
+    const testDetailEndpoint = (id) => testAccessMode()==='jwt' ? `/api/v1/users/me/tests/${id}` : `/api/v1/integrations/tests/${id}`;
+    const endpoint = (path) => `${apiBase()}${path}`;
+    function headers({json=false, key=false, auth=false}={}) {
+      const h = { Accept:'application/json' };
+      if (json) h['Content-Type'] = 'application/json';
+      if (key && apiKey()) h['X-API-Key'] = apiKey();
+      if (auth && accessToken()) h.Authorization = `Bearer ${accessToken()}`;
+      return h;
+    }
+    async function request(path, options={}, authMode='') {
+      if (!apiBase()) throw new Error('Сначала укажи адрес API в настройках.');
+      const h = headers({json: options.body !== undefined, key: authMode === 'key', auth: authMode === 'jwt'});
+      const res = await fetch(endpoint(path), {...options, headers:{...h, ...(options.headers||{})}});
+      const raw = await res.text();
+      let data = {}; try { data = raw ? JSON.parse(raw) : {}; } catch { data = {error:raw}; }
+      if (!res.ok) throw new Error(data.error || `Запрос завершился с ошибкой (${res.status})`);
+      return data;
+    }
+    function toast(message, error=false) {
+      const el = $('toast'); el.textContent = message; el.classList.remove('hidden');
+      el.className = `fixed bottom-5 right-5 z-[60] max-w-[min(360px,calc(100vw-40px))] rounded-xl px-4 py-3 text-[11px] font-semibold text-white shadow-xl ${error?'bg-[#8b443d]':'bg-[#20382b]'}`;
+      clearTimeout(toast.timer); toast.timer = setTimeout(()=>el.classList.add('hidden'), 3400);
+    }
+    function setBusy(button, busy, label) {
+      if (!button.dataset.label) button.dataset.label = button.innerHTML;
+      button.disabled = busy; button.classList.toggle('opacity-70',busy); button.classList.toggle('cursor-wait',busy);
+      button.innerHTML = busy ? `<span class="inline-flex items-center gap-2"><span class="loader"></span>${label||'Загрузка…'}</span>` : button.dataset.label;
+    }
+    function escapeHTML(value='') { return String(value).replace(/[&<>"']/g, ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
+    const palettes = [['#edf2ec','#56735a'],['#f2efe6','#8b7950'],['#eaf0f1','#557582'],['#f3eae8','#9a685d']];
+    function testCard(test,index=0) {
+      const [bg,fg] = palettes[index%palettes.length];
+      return `<button data-test="${test.id}" class="group rounded-2xl border border-line bg-white p-5 text-left shadow-soft transition hover:-translate-y-0.5 hover:border-[#cdd9cd] hover:shadow-[0_16px_42px_rgba(27,48,35,.09)]"><div class="flex items-start justify-between"><span class="grid h-10 w-10 place-items-center rounded-xl" style="background:${bg};color:${fg}"><svg class="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M8 4.5h8M8 3h8a1 1 0 0 1 1 1v2H7V4a1 1 0 0 1 1-1ZM6 5H5a1 1 0 0 0-1 1v14h16V6a1 1 0 0 0-1-1h-1" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 11h8M8 15h5" stroke-linecap="round"/></svg></span><span class="rounded-md bg-[#f5f7f4] px-2 py-1 text-[9px] font-semibold text-muted">#${String(test.id).padStart(3,'0')}</span></div><h3 class="mt-5 line-clamp-2 font-display text-[15px] font-bold tracking-[-.025em] text-ink group-hover:text-leaf">${escapeHTML(test.title)}</h3><p class="mt-1.5 line-clamp-2 min-h-8 text-[10px] leading-4 text-muted">${escapeHTML(test.description||'Практический тест для подготовки к интервью.')}</p><div class="mt-4 flex items-center justify-between border-t border-[#f0f2ef] pt-3"><span class="text-[10px] text-muted">${test.question_count ?? '—'} вопросов</span><span class="text-[10px] font-bold text-leaf">Открыть тест <span class="ml-1 transition group-hover:translate-x-0.5">→</span></span></div></button>`;
+    }
+    function emptyState(title,desc) { return `<div class="col-span-full rounded-2xl border border-dashed border-line bg-white px-6 py-12 text-center"><div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-[#edf3ec] text-leaf"><svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 4.5h8M8 3h8a1 1 0 0 1 1 1v2H7V4a1 1 0 0 1 1-1ZM6 5H5a1 1 0 0 0-1 1v14h16V6a1 1 0 0 0-1-1h-1" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 10v6m-3-3h6" stroke-linecap="round"/></svg></div><div class="mt-4 text-[13px] font-bold">${escapeHTML(title)}</div><div class="mt-1 text-[10px] text-muted">${escapeHTML(desc)}</div><button data-open-settings class="mt-4 rounded-lg border border-line px-3 py-2 text-[10px] font-bold text-leaf">Подключить API</button></div>`; }
+    function go(view) {
+      document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+      const target = $(`view-${view}`); if (target) target.classList.add('active');
+      document.querySelectorAll('.nav-link').forEach(el=>el.classList.toggle('active',el.dataset.view===view));
+      const labels = {home:'Обзор',tests:'Мои тесты',chat:'AI-чат',settings:'Подключение API','test-detail':'Тест'};
+      $('crumb').textContent = labels[view] || 'Обзор';
+      document.body.classList.remove('mobile-open');
+      $('mobileShade').classList.add('hidden');
+      if (view==='tests') loadTests();
+      if (view==='settings') syncSettings();
+      window.scrollTo({top:0,behavior:'smooth'});
+    }
+    function syncSettings() {
+      $('apiInput').value = apiBase(); $('keyInput').value = apiKey();
+      $('settingsAuth').textContent = accessToken() ? 'Аккаунт активен' : 'Войти';
+    }
+    function updateConnection(status,message='') {
+      $('apiState').textContent = status==='online'?'API подключён':status==='offline'?'API недоступен':'API не проверен';
+      $('apiDot').className = `h-2 w-2 rounded-full ${status==='online'?'bg-[#6e9a74]':status==='offline'?'bg-[#ca746b]':'bg-[#c6cec8]'}`;
+      $('miniApiUrl').textContent = apiBase() || 'Укажи адрес в настройках';
+      $('statService').textContent = status==='online'?'Подключён':status==='offline'?'Нет ответа':'Не подключён';
+      $('statServiceSub').textContent = message || (status==='online'?'Сервер отвечает':status==='offline'?'Проверь адрес и настройки CORS':'Добавь адрес API в настройках');
+    }
+    async function checkHealth() {
+      if (!apiBase()) { updateConnection('idle'); return; }
+      try { await request('/health'); updateConnection('online'); }
+      catch (e) { updateConnection('offline', e.message); }
+    }
+    async function loadTests() {
+      const grid = $('testGrid');
+      if (!apiBase() || !testAccessMode()) { grid.innerHTML = emptyState('Войди, чтобы увидеть свои тесты','Войди в аккаунт. Для администрирования библиотеки без аккаунта можно задать API-ключ в настройках.'); return; }
+      grid.innerHTML = '<div class="col-span-full flex justify-center py-12"><span class="loader"></span></div>';
+      try {
+        const mode=testAccessMode();
+        const options=mode==='key'?{headers:{'X-API-Key':apiKey()}}:{};
+        const data = await request(testsEndpoint(),options,mode);
+        tests = data.tests || [];
+        grid.innerHTML = tests.length ? tests.map(testCard).join('') : emptyState('Пока нет тестов','Создай первый тест — он появится здесь.');
+        $('navTestCount').textContent = tests.length;
+        $('statTests').textContent = tests.length;
+        $('statQuestions').textContent = tests.reduce((sum,t)=>sum+(Number(t.question_count)||0),0);
+        $('recentTests').innerHTML = tests.length ? tests.slice(0,4).map((t,i)=>`<button data-test="${t.id}" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-[#f7f8f6]"><span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg" style="background:${palettes[i%4][0]};color:${palettes[i%4][1]}"><svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 4.5h8M8 3h8a1 1 0 0 1 1 1v2H7V4a1 1 0 0 1 1-1ZM6 5H5a1 1 0 0 0-1 1v14h16V6a1 1 0 0 0-1-1h-1" stroke-linecap="round"/><path d="M8 11h8M8 15h5" stroke-linecap="round"/></svg></span><span class="min-w-0 flex-1"><span class="block truncate text-[11px] font-bold">${escapeHTML(t.title)}</span><span class="mt-0.5 block text-[9px] text-muted">${t.question_count} вопросов · тест #${t.id}</span></span><span class="text-muted">→</span></button>`).join('') : '<div class="rounded-xl border border-dashed border-line px-4 py-8 text-center text-[11px] text-muted">Тестов пока нет. Создай первый.</div>';
+        updateConnection('online');
+      } catch (e) { grid.innerHTML = `<div class="col-span-full rounded-xl border border-[#efd9d6] bg-[#fff9f8] px-4 py-4 text-[11px] text-[#995b53]">${escapeHTML(e.message)} <button data-open-settings class="ml-2 font-bold underline">Проверить настройки</button></div>`; toast(e.message,true); }
+    }
+    async function showTest(id) {
+      activeTestId=id; $('testDetail').innerHTML='<div class="flex justify-center py-16"><span class="loader"></span></div>'; go('test-detail');
+      try {
+        const mode=testAccessMode();
+        const options=mode==='key'?{headers:{'X-API-Key':apiKey()}}:{};
+        const t = await request(testDetailEndpoint(id),options,mode);
+        $('testDetail').innerHTML = `<div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end"><div><div class="mb-2 text-[10px] font-bold uppercase tracking-[.18em] text-leaf">Тест #${t.id}</div><h1 class="font-display text-[30px] font-bold tracking-[-.045em]">${escapeHTML(t.title)}</h1><p class="mt-2 max-w-2xl text-[12px] leading-5 text-muted">${escapeHTML(t.description||'Практический тест для подготовки к интервью.')}</p></div><span class="rounded-lg border border-line bg-white px-3 py-2 text-[10px] font-semibold text-muted">${t.questions.length} вопросов</span></div><div class="mt-6 flex items-center gap-2"><button id="addQuestionBtn" class="rounded-xl bg-[#284333] px-4 py-3 text-[10px] font-bold text-white hover:bg-[#355740]">＋ Добавить вопросы</button><button id="practiceBtn" class="rounded-xl border border-line bg-white px-4 py-3 text-[10px] font-bold text-ink hover:border-[#b7c9b8]">Режим практики →</button></div><div id="questionFormWrap" class="mt-4 hidden"></div><div id="practiceWrap" class="mt-4 hidden"></div><div class="mt-6 space-y-3">${t.questions.length ? t.questions.map((q,i)=>`<article class="rounded-2xl border border-line bg-white p-4 shadow-soft sm:p-5"><div class="flex gap-3"><span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#f1f4ef] text-[10px] font-bold text-leaf">${String(i+1).padStart(2,'0')}</span><div class="min-w-0 flex-1"><div class="text-[12px] font-bold leading-5">${escapeHTML(q.text)}</div>${Array.isArray(q.options)?`<div class="mt-3 grid gap-2 sm:grid-cols-2">${q.options.map((o,j)=>`<div class="rounded-lg border border-[#edf0ec] bg-[#fbfcfa] px-3 py-2 text-[10px] text-[#59665e]"><span class="mr-2 text-[#a4afa6]">${String.fromCharCode(65+j)}</span>${escapeHTML(o)}</div>`).join('')}</div>`:''}<details class="mt-3"><summary class="cursor-pointer text-[9px] font-bold text-muted hover:text-leaf">Показать ответ</summary><div class="mt-2 rounded-lg bg-[#eff5ee] px-3 py-2 text-[10px] text-[#49674f]">${escapeHTML(Array.isArray(q.answer)?q.answer.join(', '):typeof q.answer==='object'?JSON.stringify(q.answer):q.answer||'—')}</div></details></div></div></article>`).join('') : '<div class="rounded-xl border border-dashed border-line bg-white p-8 text-center text-[11px] text-muted">В этом тесте пока нет вопросов.</div>'}</div>`;
+      } catch(e) { $('testDetail').innerHTML=`<div class="rounded-xl border border-[#efd9d6] bg-white p-5 text-[11px] text-[#995b53]">${escapeHTML(e.message)}</div>`; }
+    }
+    function createTest() {
+      if (!apiBase() || !testAccessMode()) { toast('Войди в аккаунт, чтобы создать личный тест.',true); openAuth(); return; }
+      $('newTestFeedback').textContent=''; $('newTestForm').reset();
+      $('newTestModal').classList.remove('hidden'); $('newTestModal').classList.add('flex');
+      $('newTestTitle').focus();
+    }
+    function closeNewTest() { $('newTestModal').classList.add('hidden'); $('newTestModal').classList.remove('flex'); }
+    function openAuth() { $('modal').classList.remove('hidden'); $('modal').classList.add('flex'); $('authFeedback').textContent=''; }
+    function closeAuth() { $('modal').classList.add('hidden'); $('modal').classList.remove('flex'); if(telegramTimer) clearInterval(telegramTimer); }
+    function updateUser(user) {
+      const name = user?.first_name || user?.email || (user?.telegram_username ? `@${user.telegram_username}` : 'Гость');
+      $('userLabel').textContent=name; $('userSub').textContent=user ? `${user.role||'user'} · аккаунт активен` : 'Войди, чтобы продолжить';
+      $('avatar').textContent=user?.first_name ? user.first_name.slice(0,2).toUpperCase() : user?.email ? user.email.slice(0,2).toUpperCase() : 'PW';
+      $('logoutBtn').classList.toggle('hidden',!accessToken()); $('headerAuth').textContent=accessToken()?'Аккаунт':'Войти в аккаунт'; $('settingsAuth').textContent=accessToken()?'Выйти из аккаунта':'Войти';
+    }
+    async function loadProfile() {
+      if (!accessToken() || !apiBase()) { updateUser(null); return; }
+      try { updateUser(await request('/api/v1/users/me',{},'jwt')); }
+      catch { sessionStorage.removeItem(TOKEN_STORAGE); updateUser(null); }
+    }
+    async function sendEmailCode() {
+      const btn=$('sendCode'); authEmail=$('authEmail').value.trim();
+      if(!authEmail){$('authFeedback').textContent='Укажи email.';return;}
+      setBusy(btn,true,'Отправляем…'); $('authFeedback').textContent='';
+      try { await request('/api/v1/auth/email/send',{method:'POST',body:JSON.stringify({email:authEmail})}); $('authStepEmail').classList.add('hidden'); $('authStepCode').classList.remove('hidden'); $('authFeedback').textContent='Код отправлен. Проверь почту.'; }
+      catch(e){$('authFeedback').textContent=e.message;}
+      finally{setBusy(btn,false);}
+    }
+    async function verifyEmailCode() {
+      const btn=$('verifyCode'); setBusy(btn,true,'Проверяем…');
+      try { const tokens=await request('/api/v1/auth/email/verify',{method:'POST',body:JSON.stringify({email:authEmail,code:$('authCode').value.trim()})}); sessionStorage.setItem(TOKEN_STORAGE,tokens.access_token); closeAuth(); await loadProfile(); await loadTests(); toast('Ты вошёл в аккаунт.'); }
+      catch(e){$('authFeedback').textContent=e.message;}
+      finally{setBusy(btn,false);}
+    }
+    async function loginTelegram() {
+      try {
+        const data=await request('/api/v1/auth/telegram/init',{method:'POST'});
+        $('authFeedback').innerHTML=`Открой бота в Telegram: <a class="font-bold text-leaf underline" target="_blank" rel="noreferrer" href="${escapeHTML(data.deep_link)}">перейти к боту ↗</a>. Ожидаем подтверждение…`;
+        if(telegramTimer)clearInterval(telegramTimer);
+        telegramTimer=setInterval(async()=>{try{const status=await request(`/api/v1/auth/telegram/check?auth_token=${encodeURIComponent(data.auth_token)}`);if(status.status==='approved'){clearInterval(telegramTimer);sessionStorage.setItem(TOKEN_STORAGE,status.tokens.access_token);closeAuth();await loadProfile();await loadTests();toast('Ты вошёл через Telegram.');}}catch(e){clearInterval(telegramTimer);$('authFeedback').textContent=e.message;}},2500);
+      }catch(e){$('authFeedback').textContent=e.message;}
+    }
+    function appendChatMessage(text,who='assistant',html=false){
+      const row=document.createElement('div');row.className=`flex items-start gap-2.5 ${who==='user'?'justify-end':''}`;
+      if(who==='assistant'){const avatar=document.createElement('div');avatar.className='grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[#eaf0e9] text-[9px] font-bold text-leaf';avatar.textContent='P';row.appendChild(avatar);}
+      const bubble=document.createElement('div');bubble.className=`max-w-[88%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-[11px] leading-5 ${who==='user'?'rounded-tr-md bg-[#284333] text-white':'rounded-tl-md bg-[#f3f6f1] text-[#405047]'}`;
+      if(html)bubble.innerHTML=text;else bubble.textContent=text;row.appendChild(bubble);$('chatMessages').appendChild(row);$('chatMessages').scrollTop=$('chatMessages').scrollHeight;return bubble;
+    }
+    const wait = ms => new Promise(resolve=>setTimeout(resolve,ms));
+    function isTestRequest(value){return /(тест|проверь меня|проверить знания|сгенерируй вопросы|составь вопросы)/i.test(value);}
+    function replyLocally(value){
+      const text=value.toLowerCase();
+      if(/^(привет|здравствуй|здравствуйте|доброе утро|добрый день|добрый вечер|хай|hello|hi)(?:[!,.?\s]|$)/.test(text))return 'Привет! Рад знакомству 🙂 Расскажи, к какому собеседованию готовишься, или попроси меня составить тест по резюме.';
+      if(/как дела|как ты|как поживаешь/.test(text))return 'Всё хорошо, спасибо! Я готов помочь тебе с подготовкой. Могу рассказать, с чего начать, или собрать персональный тест по твоему резюме.';
+      if(/что ты умеешь|чем ты можешь помочь|как ты поможешь|что ты можешь/.test(text))return 'Я помогу начать подготовку: отвечу на простые вопросы о собеседованиях и подготовлю персональный тест по резюме и дополнительным материалам. Загрузи резюме PDF и напиши «создай тест».';
+      if(/расскажи о себе|рассказать о себе|представиться|tell me about yourself/.test(text))return 'Подготовь ответ на 60–90 секунд: кто ты как специалист, в чём твоя сильная сторона, один конкретный результат и почему тебе интересна эта роль. Не пересказывай всё резюме по порядку. Например: «Я backend-разработчик с опытом в Go. В последнем проекте отвечал за API и ускорил обработку запросов. Сейчас ищу команду, где смогу глубже работать с распределёнными системами» — подставь только факты о себе.';
+      if(/star|ситуация.*задач|поведенческ.*вопрос/.test(text))return 'Для поведенческого вопроса используй STAR: Situation — контекст, Task — твоя задача, Action — что именно сделал ты, Result — измеримый итог и вывод. Основную часть ответа посвяти своим действиям, а не общему описанию команды.';
+      if(/сильн.*сторон|слаб.*сторон|недостатк|weakness|strength/.test(text))return 'Назови 1–2 сильные стороны и подкрепи каждую коротким примером. Если спрашивают о зоне роста, выбери реальную, но управляемую вещь и расскажи, что конкретно делаешь для улучшения. Не выдавай замаскированное достоинство вроде «я слишком много работаю».';
+      if(/зарплат|salary|ожидан.*по оплат/.test(text))return 'Сначала уточни бюджет роли, если он ещё неизвестен. Назови обоснованный диапазон с учётом уровня, рынка и полной компенсации, а не одну случайную цифру. Можно сказать: «Я ориентируюсь на диапазон X–Y, но хотел бы понять весь пакет и задачи роли».';
+      if(/почему.*компан|почему.*ваканс|почему.*работ/.test(text))return 'Свяжи ответ из трёх частей: что тебе интересно в продукте или задачах, почему твой опыт подходит и чему хочешь научиться именно в этой роли. Покажи, что изучил компанию, и избегай общих фраз, которые подойдут любому работодателю.';
+      if(/подготовиться|подготовка к собеседован|с чего начать/.test(text))return 'Начни с описания вакансии: выпиши 3–5 ключевых требований, подбери к каждому пример из опыта и подготовь короткий рассказ о себе. Затем повтори базовые темы по профессии и приготовь вопросы работодателю. Могу составить тест по твоему резюме — прикрепи PDF и попроси создать тест.';
+      if(/спасибо|благодарю/.test(text))return 'Пожалуйста! Если захочешь потренироваться, я рядом. 🙂';
+      return 'Я пока умею отвечать на базовые вопросы о подготовке и отправлять материалы на создание персонального теста. Для других тем я ещё учусь — скоро смогу помочь с большим количеством вопросов.';
+    }
+    function validateUpload(){
+      const resume=$('resumeFile').files[0],extra=[...$('attachmentFiles').files],error=$('uploadError');error.textContent='';
+      if(!resume){error.textContent='Прикрепи резюме в PDF, чтобы создать персональный тест.';return false;}
+      if(!resume.name.toLowerCase().endsWith('.pdf')){error.textContent='Резюме должно быть в PDF-формате.';return false;}
+      const all=[resume,...extra];if(extra.length>2){error.textContent='Можно добавить максимум два дополнительных файла.';return false;}
+      const allowed=/\.(pdf|docx|txt|md)$/i;
+      if(all.some(file=>!allowed.test(file.name))){error.textContent='Поддерживаются только PDF, DOCX, TXT и MD.';return false;}
+      if(all.some(file=>file.size<=0||file.size>10*1024*1024)){error.textContent='Размер каждого файла должен быть не больше 10 МБ.';return false;}
+      if(all.reduce((sum,file)=>sum+file.size,0)>24*1024*1024){error.textContent='Общий размер файлов не должен превышать 24 МБ.';return false;}
+      return true;
+    }
+    async function pollAssistant(requestId,bubble){
+      for(let i=0;i<72;i++){
+        await wait(2500);
+        try{
+          const state=await request(`/api/v1/assistant/requests/${encodeURIComponent(requestId)}`,{},'jwt');
+          if(state.status==='failed'){bubble.textContent=state.error||'Не удалось обработать документы. Попробуй ещё раз.';return;}
+          if(state.status==='completed'){
+            if(state.test_id){const test=await request(`/api/v1/users/me/tests/${state.test_id}`,{},'jwt');bubble.innerHTML=`Готово! Я составил тест «${escapeHTML(test.title)}» на ${test.questions.length} вопросов. <button data-open-generated="${test.id}" class="mt-2 block rounded-lg bg-[#284333] px-3 py-2 text-[10px] font-bold text-white">Открыть тест →</button>`;await loadTests();}
+            else bubble.textContent=state.message||'Готово!';
+            return;
+          }
+        }catch(e){bubble.textContent='Не удалось получить статус обработки. Попробуй обновить страницу чуть позже.';return;}
+      }
+      bubble.textContent='Обработка занимает больше времени, чем ожидалось. Можешь продолжить пользоваться чатом — результат появится в личных тестах.';
+    }
+    async function submitTestRequest(message){
+      if(!apiBase()){appendChatMessage('Сначала подключи адрес backend в разделе «Подключение API», затем повтори запрос.');go('settings');return;}
+      if(!accessToken()){appendChatMessage('Чтобы создать личный тест и сохранить его в твоём аккаунте, сначала войди. После входа отправь запрос ещё раз.');openAuth();return;}
+      if(!validateUpload()){appendChatMessage($('uploadError').textContent);return;}
+      const form=new FormData();form.append('message',message);form.append('resume',$('resumeFile').files[0]);for(const file of $('attachmentFiles').files)form.append('attachments',file);
+      const button=$('chatSend');button.disabled=true;$('uploadError').textContent='Отправляю резюме и дополнительные материалы…';
+      let bubble;
+      try{
+        const response=await fetch(endpoint('/api/v1/assistant/chat'),{method:'POST',headers:{Authorization:`Bearer ${accessToken()}`},body:form});
+        const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||`Запрос не принят (${response.status})`);
+        bubble=appendChatMessage(data.message||'Материалы получены. Готовлю ответ…');$('resumeFile').value='';$('attachmentFiles').value='';$('resumeLabel').textContent='PDF до 10 МБ';$('attachmentsLabel').textContent='PDF, DOCX, TXT или MD';$('uploadError').textContent='';
+        pollAssistant(data.request_id,bubble);
+      }catch(e){appendChatMessage(e.message);$('uploadError').textContent='';}
+      finally{button.disabled=false;}
+    }
+    async function sendChatMessage(value){
+      const message=value.trim();if(!message)return;
+      appendChatMessage(message,'user');$('chatInput').value='';
+      if(isTestRequest(message)){await submitTestRequest(message);return;}
+      const reply=replyLocally(message);await wait(350);appendChatMessage(reply);
+    }
+    document.querySelectorAll('[data-view]').forEach(el=>el.addEventListener('click',()=>go(el.dataset.view)));
+    document.addEventListener('click',e=>{
+      const goEl=e.target.closest('[data-go]'); if(goEl)go(goEl.dataset.go);
+      const testEl=e.target.closest('[data-test]'); if(testEl)showTest(testEl.dataset.test);
+      const generatedEl=e.target.closest('[data-open-generated]'); if(generatedEl)showTest(generatedEl.dataset.openGenerated);
+      if(e.target.closest('[data-open-settings]'))go('settings');
+    });
+    $('menuBtn').addEventListener('click',()=>{document.body.classList.add('mobile-open');$('mobileShade').classList.remove('hidden');});
+    $('mobileShade').addEventListener('click',()=>{document.body.classList.remove('mobile-open');$('mobileShade').classList.add('hidden');});
+    $('headerAuth').addEventListener('click',()=>accessToken()?go('settings'):openAuth());
+    $('settingsAuth').addEventListener('click',()=>{if(accessToken()){sessionStorage.removeItem(TOKEN_STORAGE);updateUser(null);toast('Ты вышел из аккаунта.');}else openAuth();});
+    $('logoutBtn').addEventListener('click',()=>{sessionStorage.removeItem(TOKEN_STORAGE);updateUser(null);toast('Ты вышел из аккаунта.');});
+    $('saveApi').addEventListener('click',async()=>{
+      let url=$('apiInput').value.trim().replace(/\/+$/,'');
+      if(url && !/^https?:\/\//i.test(url)){ $('settingsFeedback').textContent='Адрес должен начинаться с https://'; return; }
+      if(url) localStorage.setItem(API_STORAGE,url); else localStorage.removeItem(API_STORAGE);
+      const key=$('keyInput').value.trim(); if(key)sessionStorage.setItem('prepwise_api_key',key);else sessionStorage.removeItem('prepwise_api_key');
+      $('settingsFeedback').textContent='Проверяем подключение…'; await checkHealth(); await loadProfile(); await loadTests();
+      $('settingsFeedback').textContent=$('apiState').textContent==='API подключён'?'Подключение успешно.':'Не удалось подключиться — проверь URL и CORS.';
+      if($('apiState').textContent==='API подключён')toast('API подключён.');
+    });
+    $('clearApi').addEventListener('click',()=>{localStorage.removeItem(API_STORAGE);sessionStorage.removeItem('prepwise_api_key');$('apiInput').value='';$('keyInput').value='';$('settingsFeedback').textContent='Настройки очищены.';updateConnection('idle');$('testGrid').innerHTML=emptyState('Подключи библиотеку тестов','В настройках укажи адрес backend и ключ интеграции.');});
+    $('refreshTests').addEventListener('click',loadTests); $('newTestBtn').addEventListener('click',createTest);
+    $('closeNewTest').addEventListener('click',closeNewTest); $('cancelNewTest').addEventListener('click',closeNewTest);
+    $('newTestModal').addEventListener('click',e=>{if(e.target===$('newTestModal'))closeNewTest();});
+    $('newTestForm').addEventListener('submit',async e=>{
+      e.preventDefault(); const btn=$('submitNewTest'); setBusy(btn,true,'Создаём…'); $('newTestFeedback').textContent='';
+      try { const mode=testAccessMode(); const headers=mode==='key'?{'X-API-Key':apiKey()}:{}; await request(testsEndpoint(),{method:'POST',headers,body:JSON.stringify({title:$('newTestTitle').value.trim(),description:$('newTestDescription').value.trim()})},mode); closeNewTest(); toast('Тест создан.'); await loadTests(); go('tests'); }
+      catch(err) { $('newTestFeedback').textContent=err.message; }
+      finally { setBusy(btn,false); }
+    });
+    $('backTests').addEventListener('click',()=>go('tests')); $('closeModal').addEventListener('click',closeAuth);
+    $('modal').addEventListener('click',e=>{if(e.target===$('modal'))closeAuth();});
+    $('sendCode').addEventListener('click',sendEmailCode); $('verifyCode').addEventListener('click',verifyEmailCode);
+    $('chatForm').addEventListener('submit',e=>{e.preventDefault();sendChatMessage($('chatInput').value);});
+    $('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendChatMessage($('chatInput').value);}});
+    document.querySelectorAll('[data-prompt]').forEach(button=>button.addEventListener('click',()=>sendChatMessage(button.dataset.prompt)));
+    $('resumeFile').addEventListener('change',()=>{$('resumeLabel').textContent=$('resumeFile').files[0]?.name||'PDF до 10 МБ';$('uploadError').textContent='';});
+    $('attachmentFiles').addEventListener('change',()=>{$('attachmentsLabel').textContent=[...$('attachmentFiles').files].map(f=>f.name).join(', ')||'PDF, DOCX, TXT или MD';$('uploadError').textContent='';});
+    $('backToEmail').addEventListener('click',()=>{$('authStepEmail').classList.remove('hidden');$('authStepCode').classList.add('hidden');});
+    $('telegramLogin').addEventListener('click',loginTelegram);
+    $('authCode').addEventListener('keydown',e=>{if(e.key==='Enter')verifyEmailCode();}); $('authEmail').addEventListener('keydown',e=>{if(e.key==='Enter')sendEmailCode();});
+    document.addEventListener('click',async e=>{
+      if(e.target.closest('#addQuestionBtn')){
+        const wrap=$('questionFormWrap');
+        if(!wrap.innerHTML){wrap.innerHTML=`<form id="questionForm" class="rounded-2xl border border-line bg-white p-4 shadow-soft"><div class="text-[12px] font-bold">Добавить вопросы</div><p class="mt-1 text-[10px] text-muted">Один JSON-объект на вопрос или массив JSON.</p><textarea id="questionJSON" rows="7" class="mt-3 w-full rounded-xl border border-line bg-[#fbfcfa] px-3 py-3 font-mono text-[10px] leading-5 outline-none focus:border-[#94b29a]" placeholder='[{"text":"Вопрос?","options":["A","B"],"answer":"A"}]'></textarea><div class="mt-3 flex justify-end gap-2"><button type="button" id="cancelQuestions" class="rounded-lg border border-line px-3 py-2 text-[10px] font-bold text-muted">Отмена</button><button class="rounded-lg bg-[#284333] px-3 py-2 text-[10px] font-bold text-white">Сохранить вопросы</button></div></form>`;
+          $('questionForm').addEventListener('submit',async ev=>{ev.preventDefault();try{let val=JSON.parse($('questionJSON').value);if(!Array.isArray(val))val=[val];const mode=testAccessMode();const headers=mode==='key'?{'X-API-Key':apiKey()}:{};const route=mode==='jwt'?`/api/v1/users/me/tests/${activeTestId}/questions/batch`:`/api/v1/integrations/tests/${activeTestId}/questions/batch`;const data=await request(route,{method:'POST',headers,body:JSON.stringify({questions:val})},mode);toast(`Добавлено вопросов: ${data.questions.length}`);await showTest(activeTestId);await loadTests();}catch(err){toast(err.message,true);}});
+          $('cancelQuestions').addEventListener('click',()=>{wrap.classList.add('hidden');});
+        }
+        wrap.classList.toggle('hidden');
+      }
+      if(e.target.closest('#practiceBtn')){
+        const wrap=$('practiceWrap');
+        try {const mode=testAccessMode();const headers=mode==='key'?{'X-API-Key':apiKey()}:{};const data=await request(testDetailEndpoint(activeTestId),{headers},mode);if(!data.questions.length){toast('В тесте пока нет вопросов.',true);return;}let index=0,answers=[];const render=()=>{const q=data.questions[index];wrap.innerHTML=`<div class="rounded-2xl border border-[#dce7dc] bg-[#f4f7f2] p-5"><div class="text-[9px] font-bold uppercase tracking-wider text-leaf">Практика · вопрос ${index+1} из ${data.questions.length}</div><div class="mt-3 text-[13px] font-bold leading-6">${escapeHTML(q.text)}</div><div class="mt-4 space-y-2">${(Array.isArray(q.options)?q.options:[]).map((o,i)=>`<button data-answer="${i}" class="practice-answer w-full rounded-xl border border-line bg-white px-3 py-3 text-left text-[10px] hover:border-[#9db59e]">${escapeHTML(o)}</button>`).join('')}</div><div id="practiceFeedback" class="mt-3 text-[10px]"></div><div class="mt-4 flex justify-end"><button id="nextPractice" class="rounded-lg bg-[#284333] px-3 py-2 text-[10px] font-bold text-white">${index===data.questions.length-1?'Завершить':'Следующий вопрос →'}</button></div></div>`;wrap.classList.remove('hidden');wrap.querySelectorAll('[data-answer]').forEach(b=>b.addEventListener('click',()=>{const correct=String(q.answer)===String((Array.isArray(q.options)?q.options:[])[Number(b.dataset.answer)]);answers[index]=correct;wrap.querySelectorAll('[data-answer]').forEach(x=>x.disabled=true);$('practiceFeedback').textContent=correct?'Верно — отличный ответ.':`Правильный ответ: ${Array.isArray(q.answer)?q.answer.join(', '):q.answer}`;$('practiceFeedback').className=`mt-3 text-[10px] font-semibold ${correct?'text-[#4e795f]':'text-[#a65f55]'}`;}));$('nextPractice').addEventListener('click',()=>{index++;if(index>=data.questions.length){wrap.innerHTML=`<div class="rounded-2xl border border-line bg-white p-5 text-center"><div class="font-display text-[16px] font-bold">Практика завершена!</div><div class="mt-2 text-[11px] text-muted">Верных ответов: ${answers.filter(Boolean).length} из ${data.questions.length}</div></div>`;return;}render();});};render();}catch(err){toast(err.message,true);}
+      }
+    });
+    async function init(){ $('apiInput').value=apiBase();checkHealth();loadProfile();if(testAccessMode())loadTests(); }
+    init();
+  </script>
+</body>
+</html>

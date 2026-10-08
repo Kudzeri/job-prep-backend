@@ -1,37 +1,66 @@
 package handler
 
 import (
-	"encoding/json"
 	"errors"
 	"strconv"
 	"strings"
 
 	"github.com/Kudzeri/job-prep-backend/internal/domain"
 	"github.com/Kudzeri/job-prep-backend/internal/repository"
+	"github.com/Kudzeri/job-prep-backend/pkg/middleware"
 	"github.com/gofiber/fiber/v3"
 	"github.com/jackc/pgx/v5"
 )
 
-type IntegrationTestHandler struct{ repo *repository.TestRepository }
+type UserTestHandler struct{ repo *repository.TestRepository }
 
-func NewIntegrationTestHandler(repo *repository.TestRepository) *IntegrationTestHandler {
-	return &IntegrationTestHandler{repo: repo}
+func NewUserTestHandler(repo *repository.TestRepository) *UserTestHandler {
+	return &UserTestHandler{repo: repo}
 }
 
-func (h *IntegrationTestHandler) ListTests(c fiber.Ctx) error {
-	items, err := h.repo.List(c)
+func (h *UserTestHandler) userID(c fiber.Ctx) (int64, bool) {
+	id, ok := c.Locals(middleware.LocalUserIDKey).(int64)
+	return id, ok
+}
+
+func (h *UserTestHandler) List(c fiber.Ctx) error {
+	userID, ok := h.userID(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "неавторизован"})
+	}
+	items, err := h.repo.ListForUser(c, userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "не удалось загрузить тесты"})
 	}
 	return c.JSON(fiber.Map{"tests": items})
 }
 
-func (h *IntegrationTestHandler) GetTest(c fiber.Ctx) error {
+func (h *UserTestHandler) Create(c fiber.Ctx) error {
+	userID, ok := h.userID(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "неавторизован"})
+	}
+	var req domain.CreateTestRequest
+	if err := c.Bind().JSON(&req); err != nil || strings.TrimSpace(req.Title) == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "title обязателен"})
+	}
+	test, err := h.repo.CreateForUser(c, userID, strings.TrimSpace(req.Title), strings.TrimSpace(req.Description))
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "не удалось создать тест"})
+	}
+	return c.Status(fiber.StatusCreated).JSON(test)
+}
+
+func (h *UserTestHandler) Get(c fiber.Ctx) error {
+	userID, ok := h.userID(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "неавторизован"})
+	}
 	id, err := strconv.ParseInt(c.Params("testId"), 10, 64)
 	if err != nil || id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "некорректный testId"})
 	}
-	details, err := h.repo.Get(c, id)
+	details, err := h.repo.GetForUser(c, id, userID)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "тест не найден"})
 	}
@@ -41,35 +70,20 @@ func (h *IntegrationTestHandler) GetTest(c fiber.Ctx) error {
 	return c.JSON(details)
 }
 
-func (h *IntegrationTestHandler) CreateTest(c fiber.Ctx) error {
-	var req domain.CreateTestRequest
-	if err := c.Bind().JSON(&req); err != nil || strings.TrimSpace(req.Title) == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "title обязателен"})
+func (h *UserTestHandler) AddQuestion(c fiber.Ctx) error {
+	userID, ok := h.userID(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "неавторизован"})
 	}
-	test, err := h.repo.Create(c, strings.TrimSpace(req.Title), strings.TrimSpace(req.Description))
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "не удалось создать тест"})
-	}
-	return c.Status(fiber.StatusCreated).JSON(test)
-}
-
-func (h *IntegrationTestHandler) AddQuestion(c fiber.Ctx) error {
 	id, err := strconv.ParseInt(c.Params("testId"), 10, 64)
 	if err != nil || id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "некорректный testId"})
-	}
-	exists, err := h.repo.Exists(c, id)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "не удалось проверить тест"})
-	}
-	if !exists {
-		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "тест не найден"})
 	}
 	var q domain.Question
 	if err := c.Bind().JSON(&q); err != nil || !validQuestion(q) {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "text обязателен, options и answer должны быть корректным JSON"})
 	}
-	result, err := h.repo.AddQuestion(c, id, q)
+	result, err := h.repo.AddQuestionForUser(c, id, userID, q)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "тест не найден"})
 	}
@@ -79,7 +93,11 @@ func (h *IntegrationTestHandler) AddQuestion(c fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(result)
 }
 
-func (h *IntegrationTestHandler) AddQuestions(c fiber.Ctx) error {
+func (h *UserTestHandler) AddQuestions(c fiber.Ctx) error {
+	userID, ok := h.userID(c)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "неавторизован"})
+	}
 	id, err := strconv.ParseInt(c.Params("testId"), 10, 64)
 	if err != nil || id <= 0 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "некорректный testId"})
@@ -95,28 +113,12 @@ func (h *IntegrationTestHandler) AddQuestions(c fiber.Ctx) error {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "у каждого вопроса обязателен text, options и answer должны быть корректным JSON"})
 		}
 	}
-	exists, err := h.repo.Exists(c, id)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "не удалось проверить тест"})
-	}
-	if !exists {
+	results, err := h.repo.AddQuestionsForUser(c, id, userID, req.Questions)
+	if errors.Is(err, pgx.ErrNoRows) {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "тест не найден"})
 	}
-	results, err := h.repo.AddQuestions(c, id, req.Questions)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "не удалось добавить вопросы"})
 	}
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"questions": results})
-}
-
-func validQuestion(q domain.Question) bool {
-	if strings.TrimSpace(q.Text) == "" {
-		return false
-	}
-	for _, raw := range [][]byte{q.Options, q.Answer} {
-		if len(raw) > 0 && !json.Valid(raw) {
-			return false
-		}
-	}
-	return true
 }

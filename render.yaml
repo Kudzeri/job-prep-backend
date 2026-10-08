@@ -22,4 +22,16 @@ services:
       - key: INTEGRATION_API_KEY
         sync: false
       - key: CORS_ORIGINS
+        value: "https://prepwise-dashboard.onrender.com"
+      - key: PUBLIC_API_URL
+        value: "https://job-prep-api.onrender.com"
+      - key: ASSESSMENT_SERVICE_URL
         value: ""
+      - key: ASSESSMENT_SERVICE_API_KEY
+        value: ""
+      - key: ASSESSMENT_CALLBACK_SECRET
+        value: ""
+  - type: web
+    name: prepwise-dashboard
+    runtime: static
+    staticPublishPath: ./web
