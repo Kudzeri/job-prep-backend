@@ -132,6 +132,14 @@ func main() {
 	userRepo := repository.NewUserRepository(dbPool)
 	userService := service.NewUserService(userRepo)
 	userHandler := handler.NewUserHandler(userService)
+	testRepo := repository.NewTestRepository(dbPool)
+	testHandler := handler.NewIntegrationTestHandler(testRepo)
+
+	// API для интеграции с внешними сайтами. Ключ передается в X-API-Key.
+	integrations := app.Group("/api/v1/integrations", middleware.APIKey(os.Getenv("INTEGRATION_API_KEY")))
+	integrations.Post("/tests", testHandler.CreateTest)
+	integrations.Post("/tests/:testId/questions", testHandler.AddQuestion)
+	integrations.Post("/tests/:testId/questions/batch", testHandler.AddQuestions)
 
 	// Эндпоинты авторизации
 	authGroup := app.Group("/api/v1/auth")

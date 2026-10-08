@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: job-prep-api
+  namespace: job-prep
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: job-prep-api
+  template:
+    metadata:
+      labels:
+        app: job-prep-api
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/OWNER/REPOSITORY:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: job-prep-api-config
+            - secretRef:
+                name: job-prep-api-secrets
+          readinessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: http }
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 500m, memory: 512Mi }

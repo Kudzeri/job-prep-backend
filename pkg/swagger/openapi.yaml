@@ -2,13 +2,14 @@ openapi: 3.0.3
 info:
   title: Job Prep Backend API
   version: 1.0.0
-  description: API для авторизации, профиля и Telegram-auth.
+  description: API для авторизации, профиля и внешнего создания тестов.
 servers:
   - url: http://localhost:8080
 tags:
   - name: Health
   - name: Auth
   - name: Users
+  - name: Integrations
 paths:
   /health:
     get:
@@ -298,13 +299,167 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /api/v1/integrations/tests:
+    post:
+      tags: [Integrations]
+      summary: Создать тест с внешнего сайта
+      security:
+        - integrationApiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTestRequest"
+            example:
+              title: Основы Go
+              description: Вводный тест
+      responses:
+        "201":
+          description: Тест создан
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Test"
+        "400":
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "401":
+          description: Неверный API-ключ
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+  /api/v1/integrations/tests/{testId}/questions:
+    post:
+      tags: [Integrations]
+      summary: Добавить один вопрос в тест
+      security:
+        - integrationApiKey: []
+      parameters:
+        - in: path
+          name: testId
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QuestionInput"
+            example:
+              text: Что такое горутина?
+              options: ["поток выполнения", "тип данных"]
+              answer: "поток выполнения"
+      responses:
+        "201":
+          description: Вопрос добавлен
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Question" }
+        "400":
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Тест не найден
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+  /api/v1/integrations/tests/{testId}/questions/batch:
+    post:
+      tags: [Integrations]
+      summary: Добавить несколько вопросов одной транзакцией
+      security:
+        - integrationApiKey: []
+      parameters:
+        - in: path
+          name: testId
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [questions]
+              properties:
+                questions:
+                  type: array
+                  minItems: 1
+                  maxItems: 500
+                  items: { $ref: "#/components/schemas/QuestionInput" }
+            example:
+              questions:
+                - text: Что такое горутина?
+                  options: ["поток выполнения", "тип данных"]
+                  answer: "поток выполнения"
+                - text: Как объявить константу?
+                  options: ["const", "let"]
+                  answer: const
+      responses:
+        "201":
+          description: Вопросы добавлены
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  questions:
+                    type: array
+                    items: { $ref: "#/components/schemas/Question" }
+        "400":
+          description: Некорректный запрос
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Тест не найден
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
 components:
   securitySchemes:
+    integrationApiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
     bearerAuth:
       type: http
       scheme: bearer
       bearerFormat: JWT
   schemas:
+    CreateTestRequest:
+      type: object
+      required: [title]
+      properties:
+        title: { type: string, minLength: 1 }
+        description: { type: string }
+    Test:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        title: { type: string }
+        description: { type: string }
+      required: [id, title, description]
+    QuestionInput:
+      type: object
+      required: [text]
+      properties:
+        text: { type: string, minLength: 1 }
+        options: { type: array, items: {} }
+        answer: {}
+    Question:
+      allOf:
+        - $ref: "#/components/schemas/QuestionInput"
+        - type: object
+          properties:
+            id: { type: integer, format: int64 }
+            test_id: { type: integer, format: int64 }
+          required: [id, test_id]
     HealthResponse:
       type: object
       properties:

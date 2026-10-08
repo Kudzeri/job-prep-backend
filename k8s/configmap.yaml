@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: job-prep-api-config
+  namespace: job-prep
+data:
+  PORT: "8080"
+  CORS_ORIGINS: "https://your-frontend.example"
+  SMTP_HOST: ""
+  SMTP_PORT: "587"
+  SMTP_FROM: ""
+  TELEGRAM_BOT_USERNAME: ""

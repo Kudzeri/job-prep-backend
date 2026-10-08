@@ -32,5 +32,6 @@ func All() []SchemaFile {
 		EmailOTPCodes(),
 		RefreshTokens(),
 		TelegramAuthSessions(),
+		Tests(),
 	}
 }
