@@ -40,3 +40,9 @@ kubectl -n job-prep create secret generic job-prep-api-secrets \
 Замените `CORS_ORIGINS` в `k8s/configmap.yaml` на origin вашего сайта. PostgreSQL в Kubernetes этим набором манифестов не разворачивается: `DB_URL` должен указывать на доступную кластеру базу.
 
 `k8s/ingress.yaml` рассчитан на ingress-nginx и TLS secret `job-prep-api-tls`: замените `api.your-domain.example` и создайте TLS secret до деплоя. Для приватного пакета GHCR настройте `imagePullSecret` для namespace либо сделайте пакет доступным кластеру.
+
+## Быстрый бесплатный тестовый деплой
+
+Для pet-проекта есть `render.yaml`: подключите репозиторий в Render через **New → Blueprint**, выберите бесплатные планы и укажите `INTEGRATION_API_KEY` при запросе. Render соберет Dockerfile, создаст PostgreSQL и выдаст публичный HTTPS URL. После успешного деплоя откройте `https://<имя-сервиса>.onrender.com/swagger`, в Swagger нажмите **Authorize** и введите API-ключ; друг сможет отправлять запросы прямо из документации.
+
+На бесплатном тарифе веб-сервис засыпает после 15 минут без трафика, поэтому первый запрос может запускаться около минуты. Бесплатная база Render действует 30 дней и ограничена 1 ГБ; этот вариант подходит для временного теста, не для хранения важных данных. [Ограничения бесплатного тарифа Render](https://render.com/docs/free).

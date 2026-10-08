@@ -1,0 +1,25 @@
+databases:
+  - name: job-prep-db
+    plan: free
+    databaseName: job_prep_db
+    user: job_prep
+
+services:
+  - type: web
+    name: job-prep-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: PORT
+        value: "10000"
+      - key: DB_URL
+        fromDatabase:
+          name: job-prep-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: INTEGRATION_API_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        value: ""
