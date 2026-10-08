@@ -16,6 +16,7 @@ import (
 	"github.com/gofiber/fiber/v3"
 	"github.com/gofiber/fiber/v3/middleware/cors"
 	"github.com/gofiber/fiber/v3/middleware/logger"
+	staticfiles "github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/joho/godotenv"
 )
 
@@ -178,6 +179,9 @@ func main() {
 			"role":    role,
 		})
 	})
+
+	// Serve the frontend from the same host; API routes above keep the /api prefix.
+	app.Use("/", staticfiles.New("", staticfiles.Config{FS: os.DirFS("web")}))
 
 	// Запуск сервера
 	log.Printf("Сервер запущен на порту %s", port)

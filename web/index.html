@@ -129,7 +129,8 @@
     let authEmail = '';
     let telegramTimer = null;
     const $ = (id) => document.getElementById(id);
-    const apiBase = () => (localStorage.getItem(API_STORAGE) || '').trim().replace(/\/+$/, '');
+    const defaultApiBase = () => window.location.port === '4173' ? 'https://job-prep-api-2rq4.onrender.com' : window.location.origin;
+    const apiBase = () => (localStorage.getItem(API_STORAGE) || defaultApiBase()).trim().replace(/\/+$/, '');
     const apiKey = () => sessionStorage.getItem('prepwise_api_key') || '';
     const accessToken = () => sessionStorage.getItem(TOKEN_STORAGE) || '';
     const testAccessMode = () => accessToken() ? 'jwt' : apiKey() ? 'key' : '';
@@ -355,7 +356,7 @@
       $('settingsFeedback').textContent=$('apiState').textContent==='API подключён'?'Подключение успешно.':'Не удалось подключиться — проверь URL и CORS.';
       if($('apiState').textContent==='API подключён')toast('API подключён.');
     });
-    $('clearApi').addEventListener('click',()=>{localStorage.removeItem(API_STORAGE);sessionStorage.removeItem('prepwise_api_key');$('apiInput').value='';$('keyInput').value='';$('settingsFeedback').textContent='Настройки очищены.';updateConnection('idle');$('testGrid').innerHTML=emptyState('Подключи библиотеку тестов','В настройках укажи адрес backend и ключ интеграции.');});
+    $('clearApi').addEventListener('click',()=>{localStorage.removeItem(API_STORAGE);sessionStorage.removeItem('prepwise_api_key');$('apiInput').value=defaultApiBase();$('keyInput').value='';$('settingsFeedback').textContent=window.location.port==='4173'?'Используется Render API.':'Используется API на этом же домене.';updateConnection('checking');checkHealth();if(testAccessMode())loadTests();else $('testGrid').innerHTML=emptyState('Войди, чтобы увидеть личные тесты','Войди в аккаунт. Для администрирования библиотеки без аккаунта можно задать API-ключ в настройках.');});
     $('refreshTests').addEventListener('click',loadTests); $('newTestBtn').addEventListener('click',createTest);
     $('closeNewTest').addEventListener('click',closeNewTest); $('cancelNewTest').addEventListener('click',closeNewTest);
     $('newTestModal').addEventListener('click',e=>{if(e.target===$('newTestModal'))closeNewTest();});
